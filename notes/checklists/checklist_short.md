@@ -45,14 +45,14 @@
 **What:** Basic CRUD API with database connectivity
 
 ### Tasks
-- [ ] Create GitHub repository
-- [ ] Initialize FastAPI project structure
-- [ ] Set up Docker Compose (Postgres + Redis)
-- [ ] Create `.env.example` with config
-- [ ] Create User model (id, email, hashed_password, created_at)
-- [ ] Create Document model (id, title, owner_id, created_at)
+- [x] Create GitHub repository
+- [x] Initialize FastAPI project structure
+- [x] Set up Docker Compose (Postgres + Redis)
+- [x] Create `.env.example` with config
+- [x] Create User model (id, email, hashed_password, created_at)
+- [x] Create Document model (id, title, owner_id, created_at)
 - [ ] Set up Alembic migrations
-- [ ] Configure async database connection
+- [x] Configure async database connection
 - [ ] `GET /health` - Health check
 - [ ] `POST /auth/register` - User registration
 - [ ] `POST /documents` - Create document

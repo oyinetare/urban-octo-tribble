@@ -78,3 +78,7 @@ ___
 ___
 
 ## References/Acknowledgments
+- Azure Architecture
+    - [Best practices for RESTful web API design](https://learn.microsoft.com/en-us/azure/architecture/best-practices/api-design)
+    - [API design](https://learn.microsoft.com/en-us/azure/architecture/microservices/design/api-design)
+- [FastAPI Docs (Learn)](https://fastapi.tiangolo.com/learn/)
