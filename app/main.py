@@ -2,6 +2,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.routes import auth, documents
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -22,6 +24,10 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="urban-octo-tribble API", version="1.0.0", lifespan=lifespan)
+
+api_prefix = "/api/v1"
+app.include_router(auth.router, prefix=api_prefix)
+app.include_router(documents.router, prefix=api_prefix)
 
 
 @app.get("/")

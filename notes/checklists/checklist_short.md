@@ -54,12 +54,12 @@
 - [x] Set up Alembic migrations
 - [x] Configure async database connection
 - [x] `GET /health` - Health check
-- [ ] `POST /auth/register` - User registration
-- [ ] `POST /documents` - Create document
-- [ ] `GET /documents` - List user documents
-- [ ] `GET /documents/{id}` - Get single document
-- [ ] `PUT /documents/{id}` - Update document
-- [ ] `DELETE /documents/{id}` - Delete document
+- [x] `POST /auth/register` - User registration
+- [x] `POST /documents` - Create document
+- [x] `GET /documents` - List user documents
+- [x] `GET /documents/{id}` - Get single document
+- [x] `PUT /documents/{id}` - Update document
+- [x] `DELETE /documents/{id}` - Delete document
 - [ ] Set up pytest with fixtures
 - [ ] Test each endpoint
 - [ ] Test validation errors
