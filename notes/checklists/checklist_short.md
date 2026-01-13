@@ -53,7 +53,7 @@
 - [x] Create Document model (id, title, owner_id, created_at)
 - [ ] Set up Alembic migrations
 - [x] Configure async database connection
-- [ ] `GET /health` - Health check
+- [x] `GET /health` - Health check
 - [ ] `POST /auth/register` - User registration
 - [ ] `POST /documents` - Create document
 - [ ] `GET /documents` - List user documents
