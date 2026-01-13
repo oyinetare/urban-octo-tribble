@@ -60,7 +60,7 @@
 - [x] `GET /documents/{id}` - Get single document
 - [x] `PUT /documents/{id}` - Update document
 - [x] `DELETE /documents/{id}` - Delete document
-- [ ] Set up pytest with fixtures
+- [x] Set up pytest with fixtures
 - [ ] Test each endpoint
 - [ ] Test validation errors
 - [ ] Achieve 70%+ test coverage
@@ -69,8 +69,8 @@
 - [ ] All endpoints return correct status codes
 - [ ] Can register user and CRUD documents via Swagger UI
 - [ ] Tests pass with 70%+ coverage
-- [ ] Docker Compose runs everything successfully
-- [ ] Alembic migrations work (upgrade/downgrade)
+- [x] Docker Compose runs everything successfully
+- [x] Alembic migrations work (upgrade/downgrade)
 
 ---
 
