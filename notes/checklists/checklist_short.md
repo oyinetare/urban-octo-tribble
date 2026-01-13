@@ -51,7 +51,7 @@
 - [x] Create `.env.example` with config
 - [x] Create User model (id, email, hashed_password, created_at)
 - [x] Create Document model (id, title, owner_id, created_at)
-- [ ] Set up Alembic migrations
+- [x] Set up Alembic migrations
 - [x] Configure async database connection
 - [x] `GET /health` - Health check
 - [ ] `POST /auth/register` - User registration
