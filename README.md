@@ -53,9 +53,47 @@ ___
 
 ## Development Commands
 
+The project includes a comprehensive Makefile for common tasks:
+
+```bash
+make help              # Show all available commands
+
+# Development
+make install           # Install production dependencies
+make dev-install       # Install all dependencies + dev tools
+make run               # Start development server
+make run-fresh         # Clean start (rebuild Docker volumes)
+
+# Code Quality
+make format            # Format code with Ruff
+make lint              # Lint code with Ruff
+make type-check        # Type check with Ty
+make ci                # Run all checks (format, lint, type-check, test)
+make pre-commit        # Run pre-commit on all files
+
+# Testing
+make test              # Run tests
+make test-cov          # Run tests with coverage report
+
+# Database
+make migrate           # Run migrations
+make migrate-create    # Create new migration (use: make migrate-create msg="description")
+make migrate-down      # Rollback one migration
+
+# Docker
+make docker-up         # Start Docker services
+make docker-down       # Stop Docker services
+make docker-logs       # View Docker logs
+
+# Cleanup
+make clean             # Remove cache and build files
+```
+
 ___
 
 ## API Usage
+
+
 
 ___
 
@@ -67,6 +105,20 @@ ___
 
 ## Running Tests
 
+```bash
+# Run all tests
+make test
+
+# Run with coverage report
+make test-cov
+
+# Run specific test file
+uv run pytest tests/test_auth.py -v
+
+# Run with verbose output
+uv run pytest -vv
+```
+
 ___
 
 ## Project Structure
@@ -74,6 +126,43 @@ ___
 ___
 
 ## Code Quality
+
+This project uses Astral's modern Python tooling:
+
+- **uv**: Fast Python package installer and resolver
+- **Ruff**: Extremely fast Python linter and formatter
+- **Ty**: Ultra-fast type checker
+- **pre-commit**: Git hooks for automated checks
+
+### Configuration
+
+All tools are configured in `pyproject.toml`:
+
+```toml
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ty]
+[tool.ty.environment]
+python-version = "3.13"
+```
+
+### Running Checks
+
+```bash
+# Format and fix code
+make format
+
+# Check linting
+make lint
+
+# Type checking
+make type-check
+
+# Run all CI checks
+make ci
+```
 
 ___
 
