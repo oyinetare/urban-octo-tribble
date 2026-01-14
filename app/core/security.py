@@ -23,7 +23,7 @@ class TokenManager:
         """Verify password hash."""
         return self.password_hash.verify(password, hashed_password)
 
-    def create_token(
+    def create_access_token(
         self,
         data: dict,
         expires_delta: timedelta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
@@ -34,6 +34,19 @@ class TokenManager:
 
         to_encode.update({"exp": expire, "type": "access"})
 
+        return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+    def create_refresh_token(
+        self,
+        data: dict,
+        expires_delta: timedelta = timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+    ) -> str:
+        """Create a JWT refresh token (longer-lived)."""
+        to_encode = data.copy()
+
+        expire = datetime.now() + expires_delta
+
+        to_encode.update({"exp": expire, "type": "refresh"})
         return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
     def decode_token(self, token: str) -> dict | None:

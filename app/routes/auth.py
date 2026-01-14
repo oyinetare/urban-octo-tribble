@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -14,6 +14,7 @@ from app.exceptions import (
     CredentialsException,
     InactiveUserException,
     UserAlreadyExistsException,
+    UserNotFoundException,
 )
 from app.models import User
 from app.schemas import Token, UserCreate, UserResponse
@@ -89,41 +90,90 @@ async def login_for_access_token(
 
     # Define scopes based on user role
     scopes = user.role.scopes
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = token_manager.create_token(
-        data={"sub": user.username, "scopes": scopes}, expires_delta=access_token_expires
+
+    access_token = token_manager.create_access_token(data={"sub": user.username, "scopes": scopes})
+
+    refresh_token = token_manager.create_refresh_token(
+        data={"sub": user.username, "scopes": scopes}
     )
 
-    # refresh_token_expires = timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    # refresh_token = token_manager.create_refresh_token(
-    #     data={"sub": user.username, "scopes": scopes}, expires_delta=refresh_token_expires
-    # )
-
     # # Set refresh token in HttpOnly cookie for security
-    # response.set_cookie(
-    #     key="refresh_token",
-    #     value=refresh_token,
-    #     httponly=True,  # Prevents JavaScript access (XSS protection)
-    #     secure=settings.ENVIRONMENT == "production",  # HTTPS only in production
-    #     samesite="lax",  # CSRF protection
-    #     max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,  # seconds
-    # )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,  # Prevents JavaScript access (XSS protection)
+        secure=settings.ENVIRONMENT == "production",  # HTTPS only in production
+        samesite="lax",  # CSRF protection
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,  # seconds
+    )
 
     return Token(access_token=access_token, token_type="bearer", scopes=scopes)
 
 
 @router.post("/refresh")
-def refresh_access_token(response: Request, session: AsyncSession = Depends(get_session)):
+async def refresh_access_token(response: Request, session: AsyncSession = Depends(get_session)):
     """Refresh the access token using the refresh token from cookie."""
+    # Get refresh token from cookie
+    refresh_token = response.cookies.get("refresh_token")
+    if not refresh_token:
+        raise CredentialsException()
+
+    # Check if token is blacklisted
+    if await redis_service.is_token_blacklisted(refresh_token):
+        raise CredentialsException()
+
+    # Decode and validate refresh token
+    payload = token_manager.decode_token(refresh_token)
+    if payload is None:
+        raise CredentialsException()
+
+    token_type = payload.get("type")
+
+    if token_type != "refresh":
+        raise CredentialsException
+
+    username: str | None = payload.get("sub")
+    if username is None:
+        raise CredentialsException()
+
+    # Verify user still exists and is active
+    statement = select(User).where(User.username == username)
+    result = await session.execute(statement)
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise UserNotFoundException
+
+    if not user.is_active:
+        return InactiveUserException()
+
+    # Get scopes from refresh token or regenerate from user role
+    scopes = payload.get("scopes", user.role.scopes)
+
+    # Create new access token with scopes
+
+    access_token = token_manager.create_access_token(data={"sub": user.username, "scopes": scopes})
+
+    return Token(access_token=access_token, token_type="bearer", scopes=scopes)
 
 
 @router.post("/logout")
 async def logout(request: Request, response: Response, token: str = Depends(oauth2_scheme)):
     """Logout by blacklisting tokens and clearing cookies."""
+    # Blacklist the access token
     access_token_expiry = token_manager.get_token_expiry(token)
     if access_token_expiry:
         expires_in = int((access_token_expiry - datetime.now()).total_seconds())
         if expires_in > 0:
             await redis_service.blacklist_token(token, expires_in)
+
+    # Blacklist the refresh token if present
+    refresh_token = request.cookies.get("refresh_token")
+    if refresh_token:
+        refresh_token_expiry = token_manager.get_token_expiry(refresh_token)
+        if refresh_token_expiry:
+            expires_in = int((refresh_token_expiry - datetime.now()).total_seconds())
+            if expires_in > 0:
+                await redis_service.blacklist_token(refresh_token, expires_in)
 
     return {"message": "Successfully logged out"}
