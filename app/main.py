@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from app.core import redis_service
 from app.exceptions import AppException
 from app.routes import auth, documents
 
@@ -20,9 +21,14 @@ async def lifespan(app: FastAPI):
     Shutdown:
     - Close connections
     """
+    # Startup
     await init_db()
+    await redis_service.initialize()
 
     yield
+
+    # Shutdown
+    await redis_service.close()
 
 
 app = FastAPI(title="urban-octo-tribble API", version="1.0.0", lifespan=lifespan)
