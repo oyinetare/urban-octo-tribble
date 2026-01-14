@@ -44,6 +44,18 @@ class TokenManager:
         except InvalidTokenError:
             return None
 
+    def get_token_expiry(self, token: str) -> datetime | None:
+        """Extract expiration time from token."""
+        try:
+            payload = self.decode_token(token)
+            if payload is not None:
+                exp_timestamp = payload.get("exp")
+                if exp_timestamp:
+                    return datetime.fromtimestamp(exp_timestamp)
+        except Exception:
+            pass
+        return None
+
 
 # Global instance
 token_manager = TokenManager()

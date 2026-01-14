@@ -6,8 +6,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from app.core import get_session, token_manager
+from app.core import get_session, redis_service, token_manager
 from app.core.config import get_settings
+from app.dependencies import oauth2_scheme
 from app.exceptions import (
     AppException,
     CredentialsException,
@@ -117,10 +118,12 @@ def refresh_access_token(response: Request, session: AsyncSession = Depends(get_
 
 
 @router.post("/logout")
-def logout(
-    response: Request,
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    session: AsyncSession = Depends(get_session),
-):
+async def logout(request: Request, response: Response, token: str = Depends(oauth2_scheme)):
     """Logout by blacklisting tokens and clearing cookies."""
-    pass
+    access_token_expiry = token_manager.get_token_expiry(token)
+    if access_token_expiry:
+        expires_in = int((access_token_expiry - datetime.now()).total_seconds())
+        if expires_in > 0:
+            await redis_service.blacklist_token(token, expires_in)
+
+    return {"message": "Successfully logged out"}

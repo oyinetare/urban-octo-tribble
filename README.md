@@ -119,6 +119,11 @@ curl -X GET $API_URL/api/v1/users/me \
   -H "Authorization: Bearer $TOKEN" | jq
 ```
 
+```bash
+# Logout
+curl -X POST 'http://localhost:8000/api/v1/auth/logout' \
+  -H "Authorization: Bearer $TOKEN" | jq
+```
 
 ___
 
