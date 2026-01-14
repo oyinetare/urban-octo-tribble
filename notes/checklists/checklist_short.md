@@ -79,7 +79,7 @@
 **What:** JWT authentication with secure password handling
 
 ### Tasks
-- [ ] Implement password hashing with bcrypt
+- [x] Implement password hashing with pwdlib
 - [ ] Create JWT token generation (access + refresh)
 - [ ] `POST /auth/login` - Login endpoint
 - [ ] `POST /auth/refresh` - Refresh token endpoint

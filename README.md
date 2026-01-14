@@ -10,6 +10,7 @@
 ## 📋 Table of Contents
 
 - [Features](#features)
+<!-- - [Quick Start] -->
 - [Tech Stack](#tech-stack)
 - [Architecture](#architecture)
 - [Getting Started](#getting-started)
