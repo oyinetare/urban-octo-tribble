@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 
 from app.core import redis_service
 from app.exceptions import AppException
-from app.routes import auth, documents
+from app.routes import auth, documents, users
 
 
 @asynccontextmanager
@@ -53,6 +53,7 @@ async def app_exception_handler(request: Request, exc: AppException):
 api_prefix = "/api/v1"
 app.include_router(auth.router, prefix=api_prefix)
 app.include_router(documents.router, prefix=api_prefix)
+app.include_router(users.router, prefix=api_prefix)
 
 
 @app.get("/")

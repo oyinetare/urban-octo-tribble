@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, EmailStr, Field
 
+from app.core import UserRole
+
 
 class UserBase(BaseModel):
     """Base user schema with common attributes."""
@@ -14,6 +16,8 @@ class UserCreate(UserBase):
     """Schema for creating a new user."""
 
     password: str = Field(min_length=8, max_length=100)
+    role: UserRole = Field(default=UserRole.USER)
+    # tier: str | None = Field(default="free", max_length=50)
 
 
 class UserResponse(UserBase):
@@ -21,7 +25,16 @@ class UserResponse(UserBase):
 
     id: int
     is_active: bool
+    role: UserRole
+    # tier: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
+
+
+class Token(BaseModel):
+    """Schema for JWT token response with OAuth2 scopes."""
+
+    access_token: str
+    token_type: str = "bearer"
+    scopes: list[str] = Field(default=[], example=["read", "write", "admin"])

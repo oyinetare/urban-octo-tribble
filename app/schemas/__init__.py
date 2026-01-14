@@ -1,5 +1,5 @@
 from app.schemas.document import DocumentBase, DocumentCreate, DocumentResponse
-from app.schemas.user import UserBase, UserCreate, UserResponse
+from app.schemas.user import Token, UserBase, UserCreate, UserResponse
 
 __all__ = [
     "DocumentBase",
@@ -8,4 +8,5 @@ __all__ = [
     "UserBase",
     "UserCreate",
     "UserResponse",
+    "Token",
 ]

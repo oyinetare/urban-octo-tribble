@@ -94,6 +94,30 @@ ___
 
 ## API Usage
 
+### Authentication Flow
+
+```bash
+export API_URL="http://localhost:8000"
+
+# 1. Register a new user
+export API_URL="http://localhost:8000"
+curl -X POST $API_URL/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "username": "testuser",
+    "password": "password123"
+  }' | jq
+
+# 2. Login and save the access token
+TOKEN=$(curl -X POST $API_URL/api/v1/auth/login \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=testuser&password=password123" | jq -r '.access_token')
+
+# 3. Access protected endpoints
+curl -X GET $API_URL/api/v1/users/me \
+  -H "Authorization: Bearer $TOKEN" | jq
+```
 
 
 ___

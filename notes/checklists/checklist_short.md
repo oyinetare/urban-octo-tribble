@@ -81,10 +81,10 @@
 ### Tasks
 - [x] Implement password hashing with pwdlib
 - [ ] Create JWT token generation (access + refresh)
-- [ ] `POST /auth/login` - Login endpoint
+- [x] `POST /auth/login` - Login endpoint
 - [ ] `POST /auth/refresh` - Refresh token endpoint
 - [ ] `POST /auth/logout` - Logout (token blacklist)
-- [ ] Create authentication dependency (`get_current_user`)
+- [x] Create authentication dependency (`get_current_user`)
 - [ ] Protect all document endpoints
 - [ ] Implement ownership verification
 - [ ] Add role-based access (optional: admin role)
