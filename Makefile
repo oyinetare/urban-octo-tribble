@@ -1,8 +1,13 @@
-.PHONY: install dev-install format lint type-check test test-cov clean run migrate pre-commit help check-docker-up run-fresh
+.PHONY: install dev-install format lint type-check test test-cov clean run migrate pre-commit help check-docker-up run-fresh gaf
 
 help:  ## Show this help message
 	@echo "Available commands:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+gaf: # git add . and run format code with ruff
+	git add .
+	uv run ruff format .
+	uv run ruff check --fix .
 
 install:  ## Install production dependencies
 	uv sync

@@ -10,9 +10,14 @@ settings = get_settings()
 
 class RedisService:
     """
-    Singleton Redis service.
+    Centralized Redis service using Singleton pattern.
 
     Provides a single Redis connection pool shared across the application.
+    Used by:
+    - Token blacklisting (authentication)
+    - Rate limiting
+    - Caching
+    - Session storage
     """
 
     _instance: "RedisService | None" = None

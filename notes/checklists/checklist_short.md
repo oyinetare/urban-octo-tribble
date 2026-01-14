@@ -85,9 +85,9 @@
 - [x] `POST /auth/refresh` - Refresh token endpoint
 - [x] `POST /auth/logout` - Logout (token blacklist)
 - [x] Create authentication dependency (`get_current_user`)
-- [ ] Protect all document endpoints
-- [ ] Implement ownership verification
-- [ ] Add role-based access (optional: admin role)
+- [x] Protect all document endpoints
+- [x] Implement ownership verification
+- [x] Add role-based access (optional: admin role)
 - [ ] CORS configuration
 - [ ] HTTPS enforcement
 - [ ] Security headers middleware
@@ -97,10 +97,10 @@
 - [ ] Test expired tokens
 
 ### Done When
-- [ ] Login returns JWT tokens
-- [ ] Protected endpoints require valid token
-- [ ] Cannot access other user's documents
-- [ ] Token refresh works
+- [x] Login returns JWT tokens
+- [x] Protected endpoints require valid token
+- [x] Cannot access other user's documents
+- [x] Token refresh works
 - [ ] Security headers present in responses
 
 ---
@@ -236,7 +236,7 @@
 - [ ] Environment variable management
 - [ ] Health check endpoint
 - [ ] Graceful shutdown
-- [ ] API documentation (auto-generated Swagger)
+- [x] API documentation (auto-generated Swagger)
 - [ ] README with setup instructions
 - [ ] Architecture diagram
 - [ ] Deployment guide

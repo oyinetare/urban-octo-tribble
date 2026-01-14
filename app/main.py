@@ -13,7 +13,15 @@ async def lifespan(app: FastAPI):
     from app.core import init_db
 
     """
+    https://uvicorn.dev/concepts/lifespan/
+
     Lifespan context manager for startup and shutdown events.
+
+    Since Uvicorn is an ASGI server, it supports the ASGI lifespan protocol. This allows you to run startup and shutdown events for your application.
+
+    The lifespan protocol is useful for initializing resources that need to be available throughout the lifetime of the application, such as database connections, caches, or other services.
+
+    Keep in mind that the lifespan is executed only once per application instance. If you have multiple workers, each worker will execute the lifespan independently.
 
     Startup:
     - Initialize connections
@@ -51,9 +59,9 @@ async def app_exception_handler(request: Request, exc: AppException):
 
 # ROUTES
 api_prefix = "/api/v1"
+app.include_router(users.router, prefix=api_prefix)
 app.include_router(auth.router, prefix=api_prefix)
 app.include_router(documents.router, prefix=api_prefix)
-app.include_router(users.router, prefix=api_prefix)
 
 
 @app.get("/")
