@@ -80,9 +80,9 @@
 
 ### Tasks
 - [x] Implement password hashing with pwdlib
-- [ ] Create JWT token generation (access + refresh)
+- [x] Create JWT token generation (access + refresh)
 - [x] `POST /auth/login` - Login endpoint
-- [ ] `POST /auth/refresh` - Refresh token endpoint
+- [x] `POST /auth/refresh` - Refresh token endpoint
 - [x] `POST /auth/logout` - Logout (token blacklist)
 - [x] Create authentication dependency (`get_current_user`)
 - [ ] Protect all document endpoints
