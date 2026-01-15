@@ -53,9 +53,17 @@ async def register(user_data: UserCreate, session: AsyncSession = Depends(get_se
 
         return user
 
+    # 1. Catch specific custom exceptions first (if you want to handle them here)
+    except UserAlreadyExistsException:
+        await session.rollback()
+        raise  # Re-raise it so FastAPI can handle it with the correct status code
+
+    # 2. Catch specific library errors
     except IntegrityError:
         await session.rollback()
         raise UserAlreadyExistsException() from None
+
+    # 3. Finally, catch everything else as a 500
     except Exception as e:
         await session.rollback()
         raise AppException(
@@ -145,7 +153,7 @@ async def refresh_access_token(response: Request, session: AsyncSession = Depend
         raise UserNotFoundException
 
     if not user.is_active:
-        return InactiveUserException()
+        raise InactiveUserException()
 
     # Get scopes from refresh token or regenerate from user role
     scopes = payload.get("scopes", user.role.scopes)

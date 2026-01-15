@@ -6,6 +6,7 @@ from app.core import get_session
 from app.dependencies import get_current_user, verify_document_ownership
 from app.models import Document, User
 from app.schemas import DocumentCreate, DocumentResponse
+from app.schemas.document import DocumentUpdate
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -26,8 +27,8 @@ async def create_document(
     return document
 
 
-@router.get("/{id}", response_model=DocumentResponse, status_code=status.HTTP_200_OK)
-def get_document(document: Document = Depends(verify_document_ownership)):
+@router.get("/{document_id}", response_model=DocumentResponse, status_code=status.HTTP_200_OK)
+def get_document(document: Document = Depends(verify_document_ownership)) -> Document:
     """
     Get a document by ID.
     Only returns document if current user is the owner.
@@ -35,17 +36,22 @@ def get_document(document: Document = Depends(verify_document_ownership)):
     return document
 
 
-@router.put("/{id}", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
+@router.put(
+    "/{document_id}", response_model=DocumentResponse, status_code=status.HTTP_200_OK
+)  # Changed to 200 OK for updates
 async def update_document(
-    document_data: DocumentCreate,
+    document_data: DocumentUpdate,
     document: Document = Depends(verify_document_ownership),
     session: AsyncSession = Depends(get_session),
-):
+) -> Document:
     """
     Update a document.
     Only owner can update.
     """
-    for key, value in document_data.model_dump().items:
+    # Use exclude_unset=True so only fields in the request body are updated
+    update_data = document_data.model_dump(exclude_unset=True)
+
+    for key, value in update_data.items():
         setattr(document, key, value)
 
     session.add(document)
@@ -55,7 +61,7 @@ async def update_document(
     return document
 
 
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_document(
     document: Document = Depends(verify_document_ownership),
     session: AsyncSession = Depends(get_session),
@@ -71,7 +77,7 @@ async def delete_document(
 @router.get("/", response_model=list[DocumentResponse], status_code=status.HTTP_200_OK)
 async def list_user_documents(
     current_user: User = Depends(get_current_user), session: AsyncSession = Depends(get_session)
-):
+) -> list[Document]:
     """
     List all documents owned by current user.
     """
