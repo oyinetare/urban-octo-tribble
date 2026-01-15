@@ -88,9 +88,9 @@
 - [x] Protect all document endpoints
 - [x] Implement ownership verification
 - [x] Add role-based access (optional: admin role)
-- [ ] CORS configuration
-- [ ] HTTPS enforcement
-- [ ] Security headers middleware
+- [x] CORS configuration
+- [x] HTTPS enforcement
+- [x] Security headers middleware
 - [ ] Test login with valid/invalid credentials
 - [ ] Test protected endpoints without token (401)
 - [ ] Test accessing other user's documents (403)
@@ -101,7 +101,7 @@
 - [x] Protected endpoints require valid token
 - [x] Cannot access other user's documents
 - [x] Token refresh works
-- [ ] Security headers present in responses
+- [x] Security headers present in responses
 
 ---
 

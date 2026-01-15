@@ -2,10 +2,12 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
 from app.core import get_settings, redis_service
 from app.exceptions import AppException
+from app.middleware import https_redirect_middleware, security_headers_middleware
 from app.routes import auth, documents, users
 
 settings = get_settings()
@@ -61,6 +63,9 @@ app = FastAPI(
 # MIDDLEWARE CONFIGURATION
 # Order matters! Middleware is executed in reverse order of addition.
 
+# 1. HTTPS Redirect - Should be first (executed last)
+app.middleware("http")(https_redirect_middleware)
+
 # 2. CORS - Must be early
 app.add_middleware(
     CORSMiddleware,  # type: ignore[arg-type]
@@ -72,6 +77,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 3. Trusted Host
+app.add_middleware(
+    TrustedHostMiddleware,  # type: ignore[arg-type]
+    allowed_hosts=["localhost", "127.0.0.1"],
+)
+
+# 4. Security Headers
+app.middleware("http")(security_headers_middleware)
+
+# 5. Rate Limiting
+# app.middleware("http")(rate_limit_middleware)
 
 
 # EXCEPTION HANDLERS
@@ -106,4 +123,16 @@ def root():
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok"}
+    """
+    Health check endpoint.
+
+    Returns:
+        dict: Status and service availability
+    """
+    return {
+        "status": "ok",
+        "environment": settings.ENVIRONMENT,
+        "services": {
+            "redis": redis_service.is_available,
+        },
+    }

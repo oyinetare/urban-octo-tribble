@@ -168,6 +168,11 @@ curl -X PUT http://localhost:8000/api/v1/documents/1 \
   -d '{"description": "Test update description"}' | jq
 ```
 
+```bash
+# Test Security headers present in responses
+curl -X GET -I http://localhost:8000/
+curl -v http://localhost:8000/
+```
 ___
 
 ## Interactive Documentation
