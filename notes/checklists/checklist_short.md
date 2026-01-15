@@ -72,6 +72,12 @@
 - [x] Docker Compose runs everything successfully
 - [x] Alembic migrations work (upgrade/downgrade)
 
+### Interview Questions You Can Answer
+- "Explain the difference between sync and async in Python"
+- "How do you structure a FastAPI application?"
+- "What's the difference between SQLAlchemy and SQLModel?"
+- "How do you handle database migrations in production?"
+
 ---
 
 ## Phase 1.2: Authentication & Security
@@ -79,29 +85,35 @@
 **What:** JWT authentication with secure password handling
 
 ### Tasks
-- [ ] Implement password hashing with bcrypt
-- [ ] Create JWT token generation (access + refresh)
-- [ ] `POST /auth/login` - Login endpoint
-- [ ] `POST /auth/refresh` - Refresh token endpoint
-- [ ] `POST /auth/logout` - Logout (token blacklist)
-- [ ] Create authentication dependency (`get_current_user`)
-- [ ] Protect all document endpoints
-- [ ] Implement ownership verification
-- [ ] Add role-based access (optional: admin role)
-- [ ] CORS configuration
-- [ ] HTTPS enforcement
-- [ ] Security headers middleware
+- [x] Implement password hashing with pwdlib
+- [x] Create JWT token generation (access + refresh)
+- [x] `POST /auth/login` - Login endpoint
+- [x] `POST /auth/refresh` - Refresh token endpoint
+- [x] `POST /auth/logout` - Logout (token blacklist)
+- [x] Create authentication dependency (`get_current_user`)
+- [x] Protect all document endpoints
+- [x] Implement ownership verification
+- [x] Add role-based access (optional: admin role)
+- [x] CORS configuration
+- [x] HTTPS enforcement
+- [x] Security headers middleware
 - [ ] Test login with valid/invalid credentials
 - [ ] Test protected endpoints without token (401)
 - [ ] Test accessing other user's documents (403)
 - [ ] Test expired tokens
 
 ### Done When
-- [ ] Login returns JWT tokens
-- [ ] Protected endpoints require valid token
-- [ ] Cannot access other user's documents
-- [ ] Token refresh works
-- [ ] Security headers present in responses
+- [x] Login returns JWT tokens
+- [x] Protected endpoints require valid token
+- [x] Cannot access other user's documents
+- [x] Token refresh works
+- [x] Security headers present in responses
+
+### Interview Questions You Can Answer
+- "Explain how JWT authentication works"
+- "What's the difference between access and refresh tokens?"
+- "How do you secure a REST API?"
+- "Session-based vs token-based auth - trade-offs?"
 
 ---
 
@@ -128,6 +140,12 @@
 - [ ] Rate limit headers present
 - [ ] Can handle 1000 req/s without crashing
 - [ ] Different tiers have different limits
+
+### Interview Questions You Can Answer
+- "Design a rate limiting system"
+- "Explain Token Bucket algorithm"
+- "How do you implement rate limiting in a distributed system?"
+- "What's the difference between rate limiting algorithms?"
 
 ---
 
@@ -156,6 +174,12 @@
 - [ ] All models use Snowflake IDs
 - [ ] Database migration successful
 
+### Interview Questions You Can Answer
+- "Design a distributed unique ID generator"
+- "Explain Twitter Snowflake algorithm"
+- "What happens if the clock goes backward?"
+- "UUID vs Snowflake - which and when?"
+
 ---
 
 ## Phase 1.5: URL Shortener
@@ -182,6 +206,12 @@
 - [ ] Short codes are 7 characters
 - [ ] Handles collisions gracefully
 - [ ] Analytics tracked (clicks)
+
+### Interview Questions You Can Answer
+- "Design a URL shortening service (like bit.ly)"
+- "How do you handle hash collisions?"
+- "How do you scale a URL shortener?"
+- "Base62 vs Base64 - which and why?"
 
 ---
 
@@ -213,6 +243,12 @@
 - [ ] Can mark notifications as read
 - [ ] Unread count accurate
 
+### Interview Questions You Can Answer
+- "Design a notification system"
+- "Push vs Pull notifications - trade-offs?"
+- "How do you ensure webhook delivery?"
+- "How do you handle notification preferences?"
+
 ---
 
 ## Phase 1.7: Testing & Production Hardening
@@ -236,7 +272,7 @@
 - [ ] Environment variable management
 - [ ] Health check endpoint
 - [ ] Graceful shutdown
-- [ ] API documentation (auto-generated Swagger)
+- [x] API documentation (auto-generated Swagger)
 - [ ] README with setup instructions
 - [ ] Architecture diagram
 - [ ] Deployment guide
@@ -248,6 +284,12 @@
 - [ ] Logs are structured (JSON)
 - [ ] Health check endpoint works
 - [ ] Can deploy to production
+
+### Interview Questions You Can Answer
+- "How do you test a FastAPI application?"
+- "What's your logging strategy?"
+- "How do you dockerize a Python app?"
+- "What are health checks and why are they important?"
 
 ---
 
@@ -305,6 +347,12 @@
 - [ ] File validation works
 - [ ] Status tracking implemented
 
+### Interview Questions You Can Answer
+- "Design a file storage system"
+- "How do you handle large file uploads?"
+- "Local storage vs object storage - trade-offs?"
+- "How do you validate uploaded files?"
+
 ---
 
 ## Phase 2.2: Text Extraction Pipeline
@@ -340,6 +388,12 @@
 - [ ] Status updates work
 - [ ] Error handling and retries work
 
+### Interview Questions You Can Answer
+- "Design a document processing pipeline"
+- "How do you handle background tasks at scale?"
+- "Explain Celery architecture"
+- "How do you retry failed tasks?"
+
 ---
 
 ## Phase 2.3: Document Chunking
@@ -368,6 +422,12 @@
 - [ ] Chunks saved with position and token count
 - [ ] Chunking task chains to embedding
 - [ ] Edge cases handled
+
+### Interview Questions You Can Answer
+- "How do you chunk documents for RAG?"
+- "What's the optimal chunk size and why?"
+- "Why use overlapping chunks?"
+- "How do you handle very long documents?"
 
 ---
 
@@ -403,6 +463,13 @@
 - [ ] Search returns relevant results
 - [ ] Search time < 100ms for 1M vectors
 - [ ] Batch processing optimized
+
+### Interview Questions You Can Answer
+- "How do vector databases work?"
+- "Explain semantic search vs keyword search"
+- "What's HNSW and why use it?"
+- "How do you choose embedding dimensions?"
+- "Design a semantic search system"
 
 ---
 
@@ -441,6 +508,13 @@
 - [ ] Query history saved
 - [ ] Answer quality is good (manual testing)
 
+### Interview Questions You Can Answer
+- "Explain RAG architecture"
+- "How do you reduce LLM hallucinations?"
+- "Design a document Q&A system"
+- "What's the difference between RAG and fine-tuning?"
+- "How do you handle LLM streaming?"
+
 ---
 
 ## Phase 2.6: Hybrid Search
@@ -477,6 +551,13 @@
 - [ ] Better accuracy than vector-only
 - [ ] Performance acceptable (<200ms)
 
+### Interview Questions You Can Answer
+- "Design a hybrid search system"
+- "Explain Reciprocal Rank Fusion"
+- "Vector vs keyword search - when to use each?"
+- "How do you combine multiple ranking signals?"
+- "Design a search system for technical documents"
+
 ---
 
 ## Phase 2.7: Production Optimization
@@ -511,6 +592,13 @@
 - [ ] LLM costs reduced by 40%+
 - [ ] Response time improved by 50%+
 - [ ] Cache invalidation works correctly
+
+### Interview Questions You Can Answer
+- "How do you optimize RAG system costs?"
+- "Explain cache invalidation strategies"
+- "How do you balance cost and quality?"
+- "Design a caching layer for AI applications"
+- "How do you prevent cache stampede?"
 
 ---
 
@@ -575,6 +663,13 @@
 - [ ] Conversation history saved
 - [ ] Error handling robust
 
+### Interview Questions You Can Answer
+- "Design an AI agent system"
+- "Explain ReAct prompting"
+- "How do you give LLMs tools?"
+- "What's the difference between RAG and agents?"
+- "How do you handle agent failures?"
+
 ---
 
 ## Phase 3.2: Event Streaming (Redpanda)
@@ -615,6 +710,13 @@
 - [ ] Event ordering maintained
 - [ ] Error handling robust
 
+### Interview Questions You Can Answer
+- "Design an event-driven system"
+- "Kafka vs RabbitMQ - when to use each?"
+- "How do you ensure message ordering?"
+- "Explain consumer groups"
+- "How do you handle duplicate events?"
+
 ---
 
 ## Phase 3.3: Intelligent Triggers
@@ -651,6 +753,11 @@
 - [ ] Notifications sent automatically
 - [ ] Runs as separate service
 
+### Interview Questions You Can Answer
+- "Design an intelligent monitoring system"
+- "How do you detect anomalies in time-series data?"
+- "Design a trend detection system"
+
 ---
 
 ## Phase 3.4: Real-Time Chat
@@ -686,6 +793,12 @@
 - [ ] Multi-device support works
 - [ ] Reconnection handles gracefully
 
+### Interview Questions You Can Answer
+- "Design a real-time chat system"
+- "WebSocket vs Server-Sent Events - when to use each?"
+- "How do you handle WebSocket scaling?"
+- "Design a notification system with WebSockets"
+
 ---
 
 ## Phase 3.5: Consistent Hashing
@@ -716,6 +829,13 @@
 - [ ] Adding node moves < 30% of keys
 - [ ] Documents sharded correctly
 - [ ] Request routing works
+
+### Interview Questions You Can Answer
+- "Explain consistent hashing"
+- "Design a distributed cache with consistent hashing"
+- "How do you shard a database?"
+- "What happens when you add a node to consistent hash ring?"
+- "Why use virtual nodes?"
 
 ---
 
@@ -751,6 +871,13 @@
 - [ ] Failover works (kill one instance)
 - [ ] No dropped WebSocket connections
 - [ ] Graceful shutdown works
+
+### Interview Questions You Can Answer
+- "How do you scale an API horizontally?"
+- "Explain sticky sessions and when you need them"
+- "Design a stateless API"
+- "What's graceful shutdown and why is it important?"
+- "Load balancing algorithms - which and when?"
 
 ---
 
@@ -791,6 +918,13 @@
 - [ ] Alerts configured
 - [ ] Can debug performance issues using metrics
 - [ ] Business metrics tracked
+
+### Interview Questions You Can Answer
+- "Design an observability system"
+- "What metrics would you track for an API?"
+- "Explain p50, p95, p99 latency"
+- "How do you set up alerting?"
+- "What's the RED method?"
 
 ---
 
@@ -835,6 +969,13 @@
 - [ ] Can deploy without downtime
 - [ ] Rollback tested
 - [ ] Documentation complete
+
+### Interview Questions You Can Answer
+- "How do you deploy to production?"
+- "Explain CI/CD pipeline"
+- "How do you handle database migrations?"
+- "What's blue-green deployment?"
+- "How do you manage secrets in production?"
 
 ---
 

@@ -10,6 +10,7 @@
 ## 📋 Table of Contents
 
 - [Features](#features)
+<!-- - [Quick Start] -->
 - [Tech Stack](#tech-stack)
 - [Architecture](#architecture)
 - [Getting Started](#getting-started)
@@ -93,8 +94,85 @@ ___
 
 ## API Usage
 
+### Authentication Flow
 
+```bash
+# export API_URL="http://localhost:8000"
 
+# 1. Register a new user
+curl -X POST http://localhost:8000/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "username": "testuser",
+    "password": "password123"
+  }' | jq
+
+# 2. Login and save the access token and cookies
+TOKEN=$(curl -c cookies.txt -s -X POST http://localhost:8000/api/v1/auth/login \
+-H "Content-Type: application/x-www-form-urlencoded" \
+-d "username=testuser&password=password123" | jq -r '.access_token')
+
+# curl -c cookies.txt -X POST http://localhost:8000/api/v1/auth/login \
+#   -H "Content-Type: application/x-www-form-urlencoded" \
+#   -d "username=testuser&password=password123"
+
+####
+# 2.1 Refresh token
+TOKEN=$(curl -b cookies.txt -s -X POST http://localhost:8000/api/v1/auth/refresh | jq -r '.access_token')
+
+# curl -b cookies.txt -X POST http://localhost:8000/api/v1/auth/refresh | jq
+
+# See what is actually happening
+# curl -v -b cookies.txt -X POST http://localhost:8000/api/v1/auth/refresh
+
+####
+# 3. Access protected endpoints
+curl -X GET http://localhost:8000/api/v1/users/me \
+  -H "Authorization: Bearer $TOKEN" | jq
+```
+
+```bash
+# Logout
+curl -X POST 'http://localhost:8000/api/v1/auth/logout' \
+  -H "Authorization: Bearer $TOKEN" | jq
+```
+
+### Docments
+```bash
+# 1. Create a document
+curl -X POST http://localhost:8000/api/v1/documents/ \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Test Doc", "description": "Test"}' | jq
+
+# 2. Get document ID 1
+curl -X GET http://localhost:8000/api/v1/documents/1 \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" | jq
+
+# 3. Get all documents
+curl -X GET http://localhost:8000/api/v1/documents/ \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" | jq
+
+# 4. Delete document ID 1
+curl -X DELETE http://localhost:8000/api/v1/documents/1 \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" | jq
+
+# 5. Update a document
+curl -X PUT http://localhost:8000/api/v1/documents/1 \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"description": "Test update description"}' | jq
+```
+
+```bash
+# Test Security headers present in responses
+curl -X GET -I http://localhost:8000/
+curl -v http://localhost:8000/
+```
 ___
 
 ## Interactive Documentation

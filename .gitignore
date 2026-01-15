@@ -206,5 +206,8 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-
 notes/other
+
+cookies.txt
+
+.DS_Store
