@@ -122,9 +122,9 @@
 **What:** Token Bucket rate limiting to prevent API abuse
 
 ### Tasks
-- [ ] Add Redis to Docker Compose
-- [ ] Configure Redis connection
-- [ ] Test Redis connectivity
+- [x] Add Redis to Docker Compose
+- [x] Configure Redis connection
+- [x] Test Redis connectivity
 - [ ] Implement Token Bucket algorithm
 - [ ] Create rate limit middleware
 - [ ] Different limits per user tier (free: 10/min, paid: 100/min)
