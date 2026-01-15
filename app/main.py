@@ -1,11 +1,14 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.core import redis_service
+from app.core import get_settings, redis_service
 from app.exceptions import AppException
 from app.routes import auth, documents, users
+
+settings = get_settings()
 
 
 @asynccontextmanager
@@ -39,7 +42,36 @@ async def lifespan(app: FastAPI):
     await redis_service.close()
 
 
-app = FastAPI(title="urban-octo-tribble API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(
+    title="urban-octo-tribble API",
+    version="1.0.0",
+    lifespan=lifespan,
+    # Add OAuth2 scopes documentation (only in development)
+    swagger_ui_init_oauth={
+        "clientId": "swagger",
+        "appName": "Jubilant-Barnacle API",
+        "scopes": "read write admin moderate",
+    }
+    if settings.ENVIRONMENT == "development"
+    else None,
+    # middleware=[Middleware(CustomMiddleware)]
+)
+
+
+# MIDDLEWARE CONFIGURATION
+# Order matters! Middleware is executed in reverse order of addition.
+
+# 2. CORS - Must be early
+app.add_middleware(
+    CORSMiddleware,  # type: ignore[arg-type]
+    allow_origins=[
+        "http://localhost",
+        "http://localhost:8080",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # EXCEPTION HANDLERS
