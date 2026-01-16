@@ -115,6 +115,8 @@ api_prefix = "/api/v1"
 app.include_router(users.router, prefix=api_prefix)
 app.include_router(auth.router, prefix=api_prefix)
 app.include_router(documents.router, prefix=api_prefix)
+# Redirect router WITHOUT api prefix (for cleaner URLs like /d/abc123)
+app.include_router(documents.redirect_router)
 
 
 @app.get("/")

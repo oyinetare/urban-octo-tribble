@@ -20,10 +20,12 @@ class UserCreate(UserBase):
     tier: UserTier = Field(default=UserTier.FREE)
 
 
-class UserResponse(UserBase):
+class UserResponse(BaseModel):
     """Schema for user responses."""
 
     id: int
+    username: str
+    email: EmailStr
     is_active: bool
     role: UserRole
     tier: UserTier

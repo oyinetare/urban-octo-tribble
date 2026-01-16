@@ -105,7 +105,7 @@ ___
 curl -X POST http://localhost:8000/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "test@example.com",
+    "email": "testuser@example.com",
     "username": "testuser",
     "password": "password123"
   }' | jq
@@ -148,8 +148,8 @@ curl -X POST http://localhost:8000/api/v1/documents/ \
   -H "Content-Type: application/json" \
   -d '{"title": "Test Doc", "description": "Test"}' | jq
 
-# 2. Get document ID 1
-curl -X GET http://localhost:8000/api/v1/documents/1 \
+# 2. Get document ID
+curl -X GET http://localhost:8000/api/v1/documents/{docuemnt_id} \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" | jq
 
@@ -158,16 +158,21 @@ curl -X GET http://localhost:8000/api/v1/documents/ \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" | jq
 
-# 4. Delete document ID 1
-curl -X DELETE http://localhost:8000/api/v1/documents/1 \
+# 4. Delete document
+curl -X DELETE http://localhost:8000/api/v1/documents/{docuemnt_id} \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" | jq
 
 # 5. Update a document
-curl -X PUT http://localhost:8000/api/v1/documents/1 \
+curl -X PUT http://localhost:8000/api/v1/documents/{docuemnt_id} \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"description": "Test update description"}' | jq
+
+# 6. share document link
+curl -X POST http://localhost:8000/api/v1/documents/share/{docuemnt_id} \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" | jq
 ```
 
 ```bash
