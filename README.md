@@ -27,6 +27,8 @@
 ---
 ## Features
 
+- API built w FASTAPI with Auth, Rate Limiting
+
 ___
 
 ## Tech Stack

@@ -3,15 +3,16 @@ from app.core.constants import UserRole, UserTier
 from app.core.database import AsyncSessionLocal, get_session, init_db
 from app.core.redis import redis_service
 from app.core.security import token_manager
+from app.core.snowflake import id_generator
 
 __all__ = [
-    "Settings",
-    "AsyncSessionLocal",
-    "init_db",
     "get_settings",
-    "get_session",
-    "token_manager",
-    "redis_service",
     "UserRole",
     "UserTier",
+    "AsyncSessionLocal",
+    "get_session",
+    "init_db",
+    "redis_service",
+    "token_manager",
+    "id_generator",
 ]
