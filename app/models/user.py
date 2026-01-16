@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 import sqlalchemy as sa
 from sqlmodel import Field, Relationship, SQLModel
 
-from app.core import UserRole
+from app.core import UserRole, UserTier
 
 # This import only happens during type checking, not at runtime
 # standard Python pattern for avoiding circular imports while keeping type checkers happy
@@ -29,6 +29,10 @@ class User(SQLModel, table=True):
         sa_column=sa.Column("role", sa.String, nullable=False, server_default="user")
     )
 
+    tier_name: str = Field(
+        sa_column=sa.Column("tier", sa.String, nullable=False, server_default="free")
+    )
+
     # Timestamps
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
@@ -46,3 +50,13 @@ class User(SQLModel, table=True):
     def role(self, value: UserRole):
         """Allows setting the role using the Enum."""
         self.role_name = str(value)
+
+    @property
+    def tier(self) -> UserTier:
+        """Dynamically converts the string from the DB into the UserTier enum."""
+        return UserTier(self.tier_name)
+
+    @tier.setter
+    def tier(self, value: UserTier):
+        """Allows setting the tier using the Enum."""
+        self.tier_name = str(value)

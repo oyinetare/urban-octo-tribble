@@ -125,21 +125,21 @@
 - [x] Add Redis to Docker Compose
 - [x] Configure Redis connection
 - [x] Test Redis connectivity
-- [ ] Implement Token Bucket algorithm
-- [ ] Create rate limit middleware
-- [ ] Different limits per user tier (free: 10/min, paid: 100/min)
-- [ ] Return rate limit headers (X-RateLimit-*)
+- [x] Implement Token Bucket algorithm
+- [x] Create rate limit middleware
+- [x] Different limits per user tier (free: 10/min, paid: 100/min)
+- [x] Return rate limit headers (X-RateLimit-*)
 - [ ] Test rate limit enforcement
 - [ ] Test rate limit headers
 - [ ] Test rate limit reset
 - [ ] Test different user tiers
 
 ### Done When
-- [ ] Rate limiting enforces limits correctly
-- [ ] Returns 429 when limit exceeded
-- [ ] Rate limit headers present
+- [x] Rate limiting enforces limits correctly
+- [x] Returns 429 when limit exceeded
+- [x] Rate limit headers present
 - [ ] Can handle 1000 req/s without crashing
-- [ ] Different tiers have different limits
+- [x] Different tiers have different limits
 
 ### Interview Questions You Can Answer
 - "Design a rate limiting system"

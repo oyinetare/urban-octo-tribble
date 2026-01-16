@@ -7,7 +7,11 @@ from fastapi.responses import JSONResponse
 
 from app.core import get_settings, redis_service
 from app.exceptions import AppException
-from app.middleware import https_redirect_middleware, security_headers_middleware
+from app.middleware import (
+    https_redirect_middleware,
+    rate_limit_middleware,
+    security_headers_middleware,
+)
 from app.routes import auth, documents, users
 
 settings = get_settings()
@@ -88,7 +92,7 @@ app.add_middleware(
 app.middleware("http")(security_headers_middleware)
 
 # 5. Rate Limiting
-# app.middleware("http")(rate_limit_middleware)
+app.middleware("http")(rate_limit_middleware)
 
 
 # EXCEPTION HANDLERS
