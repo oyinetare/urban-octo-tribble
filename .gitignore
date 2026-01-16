@@ -211,3 +211,5 @@ notes/other
 cookies.txt
 
 .DS_Store
+
+.vscode

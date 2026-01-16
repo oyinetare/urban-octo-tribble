@@ -107,6 +107,42 @@ class RedisService:
         except Exception:
             return False
 
+    # === Rate Limiting Operations ===
+
+    async def get_rate_limit_state(self, user_id: int) -> dict | None:
+        """Get current rate limit state for user."""
+        if not self._redis_client:
+            return None
+
+        try:
+            key = f"rate_limit:{user_id}"
+            state = await cast(Awaitable[dict], self._redis_client.hgetall(key))
+            return state if state else None
+        except Exception as e:
+            print(f"Failed to get rate limit state: {e}")
+            return None
+
+    async def set_rate_limit_state(
+        self, user_id, tokens, last_refill: float, ttl: int = 60
+    ) -> bool:
+        if not self._redis_client:
+            return False
+
+        try:
+            key = f"rate_limit:{user_id}"
+            await cast(
+                Awaitable[int],
+                self._redis_client.hset(
+                    key, mapping={"tokens": tokens, "last_refill": last_refill}
+                ),
+            )
+            await self._redis_client.expire(key, ttl)
+            return True
+
+        except Exception as e:
+            print(f"Failed to set rate limit state: {e}")
+            return False
+
 
 # Global singleton instance
 redis_service = RedisService()

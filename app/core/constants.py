@@ -16,3 +16,20 @@ class UserRole(StrEnum):
             UserRole.USER: base_scopes,
         }
         return mapping[self]
+
+
+class UserTier(StrEnum):
+    FREE = "free"
+    PAID = "paid"
+    ENTERPRISE = "enterprise"
+
+    # allowed requests per minute for rate limiting
+    @property
+    def limit(self) -> int:
+        mapping = {
+            UserTier.FREE: 10,
+            UserTier.PAID: 100,
+            UserTier.ENTERPRISE: 1000,
+        }
+
+        return mapping[self]

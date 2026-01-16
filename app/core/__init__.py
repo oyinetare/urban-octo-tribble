@@ -1,5 +1,5 @@
 from app.core.config import get_settings
-from app.core.constants import UserRole
+from app.core.constants import UserRole, UserTier
 from app.core.database import AsyncSessionLocal, get_session, init_db
 from app.core.redis import redis_service
 from app.core.security import token_manager
@@ -13,4 +13,5 @@ __all__ = [
     "token_manager",
     "redis_service",
     "UserRole",
+    "UserTier",
 ]

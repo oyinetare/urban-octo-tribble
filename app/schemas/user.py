@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, EmailStr, Field
 
-from app.core import UserRole
+from app.core import UserRole, UserTier
 
 
 class UserBase(BaseModel):
@@ -17,7 +17,7 @@ class UserCreate(UserBase):
 
     password: str = Field(min_length=8, max_length=100)
     role: UserRole = Field(default=UserRole.USER)
-    # tier: str | None = Field(default="free", max_length=50)
+    tier: UserTier = Field(default=UserTier.FREE)
 
 
 class UserResponse(UserBase):
@@ -26,7 +26,7 @@ class UserResponse(UserBase):
     id: int
     is_active: bool
     role: UserRole
-    # tier: str
+    tier: UserTier
     created_at: datetime
 
     model_config = {"from_attributes": True}

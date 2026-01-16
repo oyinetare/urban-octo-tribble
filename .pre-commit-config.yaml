@@ -30,7 +30,7 @@ repos:
 
   # General file checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -41,3 +41,4 @@ repos:
       - id: check-toml
       - id: check-merge-conflict
       - id: detect-private-key
+      - id: no-commit-to-branch # Disable a direct push to GitHub main branch
