@@ -138,7 +138,9 @@ async def verify_document_ownership(
 
 
 # Admin-only dependency
-async def get_admin_user(current_user: User = Security(get_current_user, scopes=["admin"])) -> User:
+async def get_admin_user(
+    current_user: User = Security(get_current_user, scopes=["admin"]),
+) -> User:
     """Dependency that requires admin role and admin scope."""
     if current_user.role != "admin":
         raise RequiresRoleException("admin")
@@ -159,3 +161,5 @@ def require_role(required_role: str):
         if current_user.role != required_role:
             raise RequiresRoleException(required_role)
         return current_user
+
+    return role_checker

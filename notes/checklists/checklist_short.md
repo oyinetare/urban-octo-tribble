@@ -154,25 +154,25 @@
 **What:** Twitter Snowflake algorithm for distributed IDs
 
 ### Tasks
-- [ ] Create SnowflakeID generator class
-- [ ] Thread-safe implementation
-- [ ] Handle clock skew
-- [ ] Configuration for datacenter/worker IDs
-- [ ] Replace auto-increment IDs with Snowflake
-- [ ] Update database models
+- [x] Create SnowflakeID generator class
+- [x] Thread-safe implementation
+- [x] Handle clock skew
+- [x] Configuration for datacenter/worker IDs
+- [x] Replace auto-increment IDs with Snowflake
+- [x] Update database models
 - [ ] Create migration
-- [ ] Update all ID references
+- [x] Update all ID references
 - [ ] Generate 10,000 IDs - all unique
-- [ ] IDs are sortable by time
-- [ ] Thread-safe (concurrent generation)
-- [ ] Handle clock backwards
+- [x] IDs are sortable by time
+- [x] Thread-safe (concurrent generation)
+- [x] Handle clock backwards
 
 ### Done When
-- [ ] Can generate unique IDs
+- [x] Can generate unique IDs
 - [ ] IDs are sortable by creation time
 - [ ] Thread-safe (tested with concurrent generation)
-- [ ] All models use Snowflake IDs
-- [ ] Database migration successful
+- [x] All models use Snowflake IDs
+- [x] Database migration successful
 
 ### Interview Questions You Can Answer
 - "Design a distributed unique ID generator"
