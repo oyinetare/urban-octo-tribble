@@ -187,25 +187,25 @@
 **What:** Base62 URL shortening for document sharing
 
 ### Tasks
-- [ ] Implement Base62 encode/decode
-- [ ] Generate 7-character codes (3.5 trillion URLs)
-- [ ] Create ShortURL model (short_code, document_id, created_at, clicks)
-- [ ] Add database index on short_code
-- [ ] Track click analytics
-- [ ] `POST /shorten` - Create short URL
-- [ ] `GET /{short_code}` - Redirect to document
-- [ ] `GET /shorten/{short_code}/stats` - View analytics
+- [x] Implement Base62 encode/decode
+- [x] Generate 11-character codes (3.5 trillion URLs)
+- [x] Create ShortURL model (short_code, document_id, created_at, clicks)
+- [x] Add database index on short_code
+- [x] Track click analytics
+- [x] `POST /share{document_id}` - Create short URL
+- [x] `GET /{short_code}` - Redirect to document
+- [x] `GET /documents/{short_code}/stats` - View analytics
 - [ ] Test Base62 encoding/decoding
 - [ ] Test shortening and redirect
 - [ ] Test collision handling
 - [ ] Test analytics tracking
 
 ### Done When
-- [ ] Can shorten document URLs
-- [ ] Redirects work correctly
-- [ ] Short codes are 7 characters
-- [ ] Handles collisions gracefully
-- [ ] Analytics tracked (clicks)
+- [x] Can shorten document URLs
+- [x] Redirects work correctly
+- [x] Short codes are 11 characters - 11 is the mathematical minimum for Snowflake IDs in Base62
+- [x] Handles collisions gracefully
+- [x] Analytics tracked (clicks)
 
 ### Interview Questions You Can Answer
 - "Design a URL shortening service (like bit.ly)"

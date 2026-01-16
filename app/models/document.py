@@ -7,7 +7,7 @@ from app.models import BaseModel
 # This import only happens during type checking, not at runtime
 # standard Python pattern for avoiding circular imports while keeping type checkers happy
 if TYPE_CHECKING:
-    from app.models import User
+    from app.models import ShortURL, User
 
 
 class Document(BaseModel, table=True):
@@ -28,6 +28,7 @@ class Document(BaseModel, table=True):
         index=True,
     )
     owner: "User" = Relationship(back_populates="documents")
+    shorturls: list["ShortURL"] = Relationship(back_populates="document")
 
     def __repr__(self):
         return f"<Document {self.id}: {self.title}>"

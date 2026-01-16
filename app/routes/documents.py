@@ -1,12 +1,15 @@
 from fastapi import APIRouter, Depends, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from app.core import get_session
 from app.dependencies import get_current_user, verify_document_ownership
-from app.models import Document, User
-from app.schemas import DocumentCreate, DocumentResponse
+from app.exceptions import AppException
+from app.models import Document, ShortURL, User
+from app.schemas import DocumentCreate, DocumentResponse, ShortenResponse, StatsResponse
 from app.schemas.document import DocumentUpdate
+from app.utils import generate_short_code
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -86,3 +89,96 @@ async def list_user_documents(
     documents = result.scalars().all()
 
     return list(documents)
+
+
+# === SHORTEN ===
+@router.post(
+    "/share/{document_id}", status_code=status.HTTP_201_CREATED, response_model=ShortenResponse
+)
+async def create_short_url(
+    document: Document = Depends(verify_document_ownership),
+    session: AsyncSession = Depends(get_session),
+):
+    """Share by creating a short URL for a document."""
+    # Verify document exists
+    short_code = generate_short_code(document.id)
+
+    # Check for collision
+    statement = select(ShortURL).where(ShortURL.short_code == short_code)
+    existing_result = await session.execute(statement)
+    existing = existing_result.scalar_one_or_none()
+
+    if existing:
+        # Handle collision - add random suffix
+        import random
+
+        from app.utils.url_shortener import Base62Encoder
+
+        suffix = "".join(random.choices(Base62Encoder.ALPHABET, k=2))
+        short_code = short_code[:5] + suffix  # Keep first 5 chars, add 2 random
+
+    # Create short URL
+    short_url = ShortURL(short_code=short_code, document_id=document.id, clicks=0)
+
+    session.add(short_url)
+    await session.commit()
+    await session.refresh(short_url)
+
+    return ShortenResponse(
+        short_code=short_url.short_code,
+        document_id=short_url.document_id,
+        clicks=short_url.clicks,
+        original_url=f"/documents/{document.id}",
+        short_url=f"/d/{short_url.short_code}",
+    )
+
+
+@router.get("/{short_code}/stats", response_model=StatsResponse)
+async def get_short_url_stats(
+    short_code: str,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """Get analytics for a short URL."""
+    statement = select(ShortURL).where(ShortURL.short_code == short_code)
+    result = await session.execute(statement)
+    short_url = result.scalar_one_or_none()
+
+    if not short_url:
+        raise AppException(status_code=status.HTTP_404_NOT_FOUND, message="Short URL not found")
+
+    return StatsResponse(
+        short_code=short_url.short_code,
+        document_id=short_url.document_id,
+        clicks=short_url.clicks,
+        created_at=short_url.created_at.isoformat(),
+    )
+
+
+# === REDIRECT ===
+
+
+# Redirect endpoint (separate from /shorten prefix)
+# This should be registered directly on the app with a different router
+
+redirect_router = APIRouter(tags=["redirect"])
+
+
+@redirect_router.get("/d/{short_code}")
+async def redirect_short_url(short_code: str, session: AsyncSession = Depends(get_session)):
+    """Redirect a short URL to the original document."""
+    # Look up short URL
+    statement = select(ShortURL).where(ShortURL.short_code == short_code)
+    result = await session.execute(statement)
+    short_url = result.scalar_one_or_none()
+
+    if not short_url:
+        raise AppException(status_code=status.HTTP_404_NOT_FOUND, message="Short URL not found")
+
+    # Increment click count
+    short_url.clicks += 1
+    await session.commit()
+
+    # Redirect to original URL
+    original_url = f"/documents/{short_url.document_id}"
+    return RedirectResponse(url=original_url, status_code=301)
