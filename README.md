@@ -27,7 +27,31 @@
 ---
 ## Features
 
-- API built w FASTAPI with Auth, Rate Limiting
+1. **Basic CRUD API built with FASTAPI**
+    1. RESTful with 15+ endpoints
+    2. JWT authentication with refresh tokens for secure password handling
+    3. Rate Limiting using Token Bucket algorithm to prevent API abuse
+    4. Twitter Snowflake algorithm for distributed IDs
+    5. Base62 URL shortening for document sharing
+    6. Multi-channel event-driven notifications (in-app, reliable webhooks, email)
+    7. Comprehensive tests and production configuration
+2. **RAG System, AI-powered document analysis with semantic search and RAG**
+    1. File upload with MinIO (S3-compatible storage)
+    2. Text Extraction Pipeline implemented with Background workers to extract text from documents, Document Chunking
+    3. Document Chunking where documents are split into 500-token chunks with 50-token overlap
+    4. Vector Embeddings & Search: Generating embeddings and implemented semantic search with Qdrant
+    5. Combine search with Claude + Ollama for document Q&A (RAG Implementation)
+    6. Hybrid Search: Combining vector + keyword search with RRF re-ranking
+    7. Production Optimization: Caching, cost reduction, and performance tuning
+3. **Agentic AI Platform, Autonomous AI agents with event-driven architecture and production deployment**
+    1. AI agents with tools for autonomous multi-step reasoning built with LangGraph Agent Framework
+    2. Event Streaming implemeted with Redpanda, event-driven architecture with pub/sub messaging
+    3. Intelligent Triggers, pattern detection (trends, anomalies) with automated actions
+    4. Real-Time Chat, WebSocket chat with streaming agent responses
+    5. Distributed load using consistent hash ring with virtual nodes
+    6. Multiple API instances with nginx load balancer for Horizontal Scaling
+    7. 011y (Observability): Metrics, dashboards, and alerting using Prometheus and Grafana
+    8. Production deployment with CI/CD
 
 ___
 
@@ -252,7 +276,13 @@ make ci
 ___
 
 ## References/Acknowledgments
-- Azure Architecture
-    - [Best practices for RESTful web API design](https://learn.microsoft.com/en-us/azure/architecture/best-practices/api-design)
-    - [API design](https://learn.microsoft.com/en-us/azure/architecture/microservices/design/api-design)
-- [FastAPI Docs (Learn)](https://fastapi.tiangolo.com/learn/)
+### Articles/Websites
+  - [Azure application architecture fundamentals](https://learn.microsoft.com/en-us/azure/architecture/guide/)
+      - [API design](https://learn.microsoft.com/en-us/azure/architecture/microservices/design/api-design)
+      - [Best practices for RESTful web API design](https://learn.microsoft.com/en-us/azure/architecture/best-practices/api-design)
+  - [FastAPI Documentation](https://fastapi.tiangolo.com/learn/)
+  - [The System Design Primer by Donne Martin](https://github.com/donnemartin/system-design-primer)
+
+### Books
+  - Xu, A. (2020). System design interview – An insider's guide (2nd ed.). Byte Code LLC / Independently published.
+  - Kleppmann, Martin. Designing Data-Intensive Applications: The Big Ideas Behind Reliable, Scalable, and Maintainable Systems. O'Reilly Media, 2017

@@ -215,33 +215,40 @@
 
 ---
 
-## Phase 1.6: Notification System
+## Phase 1.6: Notification System event-driven architecture using the "Task Queue" pattern
 
-**What:** Multi-channel notifications (in-app, webhook, email)
+**What:** Multi-channel event-driven notifications (in-app, reliable webhooks, email)
 
 ### Tasks
-- [ ] Create Notification model (user_id, type, title, message, read_at)
-- [ ] Support multiple types (document_uploaded, query_completed)
-- [ ] Add database indexes
-- [ ] `POST /notifications` - Create notification (internal)
-- [ ] `GET /notifications` - List user notifications
-- [ ] `GET /notifications/unread` - Unread count
-- [ ] `PATCH /notifications/{id}/read` - Mark as read
-- [ ] `DELETE /notifications/{id}` - Delete notification
-- [ ] In-app notifications (database)
-- [ ] Webhook delivery (HTTP POST)
-- [ ] Email delivery (optional: with background task)
-- [ ] Test notification creation
-- [ ] Test webhook delivery
-- [ ] Test marking as read
-- [ ] Test filtering unread
+- [ ] Data Model: Create Notification model using Snowflake IDs (user_id, type, title, message, read_at, payload).
+- [ ] Background Worker: Set up TaskIQ or Celery using your existing Redis container as the broker.
+- [ ] Internal API
+    - [ ]`POST /notifications` (Internal only) to trigger the notification lifecycle.
+- [ ] User API
+    - [ ] `GET /notifications` (paginated)
+    - [ ] `GET /notifications/unread` (count)
+- [ ] Management API
+    - [ ] PATCH /notifications/{id}/read
+    - [ ] DELETE /notifications/{id}.
+- [ ] In-App Channel: Logic to save notifications to the Postgres DB for UI display
+- [ ] Reliable Webhook Channel:
+    - [ ] Create background task for HTTP POST delivery.
+    - [ ] Implement Exponential Backoff (retry 3-5 times on failure).
+    - [ ] Add HMAC Signing (sign payload with a user secret for security)
+- [ ] Email Channel: Integrate a provider (e.g., SendGrid/Mailgun) via background task
+- [ ] Integration: Hook into Phase 1.1 and Phase 1.5 to trigger notifications on document_uploaded or short_url_clicked.
+- [ ] Testing:
+    - [ ] Test webhook retries (using a tool like Webhook.site).
+    - [ ] Test race conditions (ensure multiple workers don't send the same notification twice).
+
 
 ### Done When
-- [ ] Notifications created on events
-- [ ] In-app notifications work
-- [ ] Webhook delivery works
-- [ ] Can mark notifications as read
-- [ ] Unread count accurate
+- [ ] Notifications are successfully offloaded to Redis and processed by workers.
+- [ ] Webhooks automatically retry if the destination server is temporarily down.
+- [ ] Users can securely verify webhooks using a signature header.
+- [ ] In-app notification state (read/unread) is consistent and indexed for performance.
+- [ ] Notification IDs follow the Snowflake format established in Phase 1.4.
+
 
 ### Interview Questions You Can Answer
 - "Design a notification system"

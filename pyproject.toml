@@ -14,6 +14,8 @@ dependencies = [
     "pyjwt>=2.10.1",
     "redis>=7.1.0",
     "sqlmodel>=0.0.31",
+    "taskiq-redis[redis]>=1.2.1",
+    "taskiq[redis]>=0.12.1",
 ]
 
 [dependency-groups]

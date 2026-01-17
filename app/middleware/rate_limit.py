@@ -8,7 +8,7 @@ from app.core import redis_service
 
 class TokenBucket:
     """
-    Token algorithm bucket for rate limiting.
+    Token bucket algorithm for rate limiting.
 
     Uses shared Redis service for state storage.
     """
