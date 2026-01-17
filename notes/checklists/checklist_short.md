@@ -215,12 +215,12 @@
 
 ---
 
-## Phase 1.6: Notification System event-driven architecture using the "Task Queue" pattern
+## Phase 1.6: Notification System
 
-**What:** Multi-channel event-driven notifications (in-app, reliable webhooks, email)
+**What:** Multi-channel notifications (in-app, reliable webhooks, email) using event-driven architecture and the "Task Queue" pattern
 
 ### Tasks
-- [ ] Data Model: Create Notification model using Snowflake IDs (user_id, type, title, message, read_at, payload).
+- [x] Data Model: Create Notification model using Snowflake IDs (user_id, type, title, message, read_at, payload).
 - [ ] Background Worker: Set up TaskIQ or Celery using your existing Redis container as the broker.
 - [ ] Internal API
     - [ ]`POST /notifications` (Internal only) to trigger the notification lifecycle.
