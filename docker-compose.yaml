@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   # PostgreSQL Database
   postgres:
@@ -13,13 +15,13 @@ services:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
       retries: 5
     networks:
       - urban-octo-tribble-network
 
-  # Redis (for token blacklisting and caching)
+  # Redis (for rate limiting, token blacklisting, caching, message broker)
   redis:
     image: redis:7-alpine
     container_name: urban-octo-tribble-redis
@@ -30,9 +32,78 @@ services:
       - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
+      interval: 5s
+      timeout: 3s
       retries: 5
+    networks:
+      - urban-octo-tribble-network
+
+  # FastAPI Application
+  api:
+    build: .
+    container_name: urban-octo-tribble-api
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/urban-octo-tribble
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - ENVIRONMENT=development
+    volumes:
+      - .:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - urban-octo-tribble-network
+
+  # TaskIQ Worker (Webhook Processing)
+  worker:
+    build: .
+    command: >
+      taskiq worker
+      app.core.taskiq_broker:broker
+      --workers 4
+      --max-async-tasks 10
+      --log-level INFO
+      --fs-discover
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/urban-octo-tribble
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - ENVIRONMENT=development
+    volumes:
+      - .:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: 2
+    networks:
+      - urban-octo-tribble-network
+
+  # TaskIQ Scheduler (Periodic tasks)
+  scheduler:
+    build: .
+    command: >
+      taskiq scheduler
+      app.core.taskiq_broker:broker
+      --fs-discover
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/urban-octo-tribble
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - ENVIRONMENT=development
+    volumes:
+      - .:/app
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - urban-octo-tribble-network
 
