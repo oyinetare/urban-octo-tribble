@@ -8,6 +8,8 @@ from fastapi.responses import JSONResponse
 from app.core import get_settings, redis_service
 from app.exceptions import AppException
 from app.middleware import (
+    IdempotencyMiddleware,
+    VersioningMiddleware,
     https_redirect_middleware,
     rate_limit_middleware,
     security_headers_middleware,
@@ -60,7 +62,6 @@ app = FastAPI(
     }
     if settings.ENVIRONMENT == "development"
     else None,
-    # middleware=[Middleware(CustomMiddleware)]
 )
 
 
@@ -91,7 +92,13 @@ app.add_middleware(
 # 4. Security Headers
 app.middleware("http")(security_headers_middleware)
 
-# 5. Rate Limiting
+# 5. Versioning Headers
+app.add_middleware(VersioningMiddleware)  # type: ignore[arg-type]
+
+# 6. Idempotency (for POST requests)
+app.add_middleware(IdempotencyMiddleware, ttl_seconds=86400)  # type: ignore[arg-type]
+
+# 7. Rate Limiting
 app.middleware("http")(rate_limit_middleware)
 
 

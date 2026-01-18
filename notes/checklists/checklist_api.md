@@ -11,17 +11,17 @@
     - [ ] Standardised error response structure
     - [ ] Appropriate HTTP status codes
 - [ ] **Validation & Error Handling**
-    - [ ] Input validation
-    - [ ] Exception handling
-    - [ ] Clear, actionable error messages
+    - [x] Input validation
+    - [x] Exception handling
+    - [x] Clear, actionable error messages
 - [ ] **Basic Security**
-    - [ ] HTTPS (non-negotiable)
-    - [ ] Authentication (OAuth 2.0, JWT, or API Keys)
-    - [ ] Authorisation (who can access what)
+    - [x] HTTPS (non-negotiable)
+    - [x] Authentication (OAuth 2.0, JWT, or API Keys)
+    - [x] Authorisation (who can access what)
 - [ ] **Documentation**
-    - [ ] OpenAPI/Swagger specification
-    - [ ] Clear endpoint descriptions
-    - [ ] Request/response examples
+    - [x] OpenAPI/Swagger specification
+    - [x] Clear endpoint descriptions
+    - [x] Request/response examples
 
 ### 2. Scalability & Reliability (Before production)
 - [ ] **Asynchronous Operations (Where Appropriate)**
@@ -29,19 +29,19 @@
     - [ ] Returns 202 (Accepted) with status tracking
     - [ ] Don't make simple CRUD async unnecessarily
 - [ ] **Pagination, Filtering & Sorting**
-    - [ ] For any collection endpoints
-    - [ ] Consistent query parameter naming
-- [ ] **Rate Limiting**
-    - [ ] Prevent abuse
-    - [ ] Return 429 (Too Many Requests)
-    - [ ] Include rate limit headers
-- [ ] **Versioning**
-    - [ ] URI versioning (e.g., `/v1/resources`)
-    - [ ] Or header-based versioning
-    - [ ] Plan deprecation strategy
+    - [x] For any collection endpoints
+    - [x] Consistent query parameter naming
+- [x] **Rate Limiting**
+    - [x] Prevent abuse
+    - [x] Return 429 (Too Many Requests)
+    - [x] Include rate limit headers
+- [x] **Versioning**
+    - [x] URI versioning (e.g., `/v1/resources`)
+    - [x] Or header-based versioning
+    - [x] Plan deprecation strategy
 - [ ] **Idempotency**
-    - [ ] Idempotency keys for POST requests
-    - [ ] Ensure PUT/DELETE are idempotent by design
+    - [x] Idempotency keys for POST requests
+    - [x] Ensure PUT/DELETE are idempotent by design
 
 ### 3. Production Hardening
 - [ ] **Testing**

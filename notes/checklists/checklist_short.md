@@ -11,7 +11,8 @@
     - [1.4: Unique ID Generation](#phase-14-unique-id-generation)
     - [1.5: URL Shortener](#phase-15-url-shortener)
     - [1.6: Notifications](#phase-16-notification-system)
-    - [1.7: Testing & Production Hardening](#phase-17-testing--production-hardening)
+    - [1.7: Idempotency, URI Versioning, Pagination, Filtering & Sorting](#phase-17-idempotency-uri-versioning-pagination-filtering--sorting)
+    - [1.8: Testing & Production Hardening](#phase-18-testing--production-hardening)
 - [Project 2: RAG System](#project-2-rag-system)
     - [2.1: Document Upload & Storage](#phase-21-document-upload--storage)
     - [2.2: Text Extraction Pipeline](#phase-22-text-extraction-pipeline)
@@ -251,7 +252,25 @@
 
 ---
 
-## Phase 1.7: Testing & Production Hardening
+## Phase 1.7: Idempotency, URI Versioning, Pagination, Filtering & Sorting
+### Tasks
+- [x] Create schemas for pagination and document filtering
+- [x] Create pagination_params Dependency
+- [x] Add IdempotencyMiddelware
+- [x] Add Versioning middleware
+- [x] Add get/set idepotent repsonse to redis
+- [x] Add idempotency, filtering and sorting to document route (DELETE, PUT is idempotent by design, GET Supports idempotency via Idempotency-Key header)
+- [x] Test
+
+### Done When
+- [ ] For any collection endpoints
+- [ ] Consistent query parameter naming
+- [ ] Idempotency keys for POST requests
+- [ ] Ensure PUT/DELETE are idempotent by design
+
+---
+
+## Phase 1.8: Testing & Production Hardening
 
 **What:** Comprehensive tests and production configuration
 

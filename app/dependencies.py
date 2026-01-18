@@ -1,4 +1,4 @@
-from fastapi import Depends, Security
+from fastapi import Depends, Query, Security
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
@@ -14,6 +14,7 @@ from app.exceptions import (
     UserNotFoundException,
 )
 from app.models import Document, User
+from app.schemas import PaginationParams
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/api/v1/auth/login",
@@ -105,13 +106,23 @@ async def get_current_active_user(
     return user
 
 
+# Admin-only user dependency
+async def get_admin_user(
+    current_user: User = Security(get_current_user, scopes=["admin"]),
+) -> User:
+    """Dependency that requires admin role and admin scope."""
+    if current_user.role != "admin":
+        raise RequiresRoleException("admin")
+    return current_user
+
+
 async def verify_document_ownership(
     document_id: int,
     current_user: User = Security(get_current_user, scopes=["read"]),
     session: AsyncSession = Depends(get_session),
 ) -> Document:
     """
-    Verify that the current user owns the document or has admin access.
+    Dependency to verify that the current user owns the document or has admin access.
 
     Raises:
         HTTPException: 404 if document not found, 403 if not owned by user
@@ -137,16 +148,6 @@ async def verify_document_ownership(
     return document
 
 
-# Admin-only dependency
-async def get_admin_user(
-    current_user: User = Security(get_current_user, scopes=["admin"]),
-) -> User:
-    """Dependency that requires admin role and admin scope."""
-    if current_user.role != "admin":
-        raise RequiresRoleException("admin")
-    return current_user
-
-
 # Role-based access control
 def require_role(required_role: str):
     """
@@ -163,3 +164,12 @@ def require_role(required_role: str):
         return current_user
 
     return role_checker
+
+
+# pagination
+def pagination_params(
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+) -> PaginationParams:
+    """Dependency for pagination parameters"""
+    return PaginationParams(page=page, page_size=page_size)

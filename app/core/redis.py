@@ -143,6 +143,33 @@ class RedisService:
             print(f"Failed to set rate limit state: {e}")
             return False
 
+    # === Idempotency Operations ===
+
+    async def get_idempotent_response(self, key: str) -> dict | None:
+        """Get cached idempotent response."""
+        if not self._redis_client:
+            return None
+
+        try:
+            result = await cast(Awaitable[dict], self._redis_client.hgetall(key))
+            return result if result else None
+        except Exception as e:
+            print(f"Failed to get idempotent response: {e}")
+            return None
+
+    async def set_idempotent_response(self, key: str, data: dict, ttl: int = 86400) -> bool:
+        """Cache idempotent response."""
+        if not self._redis_client:
+            return False
+
+        try:
+            await cast(Awaitable[int], self._redis_client.hset(key, mapping=data))
+            await self._redis_client.expire(key, ttl)
+            return True
+        except Exception as e:
+            print(f"Failed to set idempotent response: {e}")
+            return False
+
 
 # Global singleton instance
 redis_service = RedisService()
