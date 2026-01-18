@@ -213,3 +213,5 @@ cookies.txt
 .DS_Store
 
 .vscode
+
+.coverage 2

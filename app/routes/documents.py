@@ -1,14 +1,23 @@
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import RedirectResponse
+from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select
+from sqlmodel import col, select
 
-from app.core import get_session
-from app.dependencies import get_current_user, verify_document_ownership
+from app.core import SortOrder, get_session
+from app.dependencies import get_current_user, pagination_params, verify_document_ownership
 from app.exceptions import AppException
 from app.models import Document, ShortURL, User
-from app.schemas import DocumentCreate, DocumentResponse, ShortenResponse, StatsResponse
-from app.schemas.document import DocumentUpdate
+from app.schemas import (
+    DocumentCreate,
+    DocumentFilterParams,
+    DocumentResponse,
+    DocumentUpdate,
+    PaginatedResponse,
+    PaginationParams,
+    ShortenResponse,
+    StatsResponse,
+)
 from app.utils import generate_short_code
 
 router = APIRouter(prefix="/documents", tags=["documents"])
@@ -20,7 +29,11 @@ async def create_document(
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ) -> Document:
-    """Create a new document (protected endpoint)."""
+    """
+    Create a new document (protected endpoint).
+
+    Supports idempotency via Idempotency-Key header.
+    """
     document = Document(**document_data.model_dump(), owner_id=current_user.id)
 
     session.add(document)
@@ -39,16 +52,14 @@ def get_document(document: Document = Depends(verify_document_ownership)) -> Doc
     return document
 
 
-@router.put(
-    "/{document_id}", response_model=DocumentResponse, status_code=status.HTTP_200_OK
-)  # Changed to 200 OK for updates
+@router.put("/{document_id}", response_model=DocumentResponse, status_code=status.HTTP_200_OK)
 async def update_document(
     document_data: DocumentUpdate,
     document: Document = Depends(verify_document_ownership),
     session: AsyncSession = Depends(get_session),
 ) -> Document:
     """
-    Update a document.
+    Update a document (idempotent by design).
     Only owner can update.
     """
     # Use exclude_unset=True so only fields in the request body are updated
@@ -70,25 +81,63 @@ async def delete_document(
     session: AsyncSession = Depends(get_session),
 ):
     """
-    Delete a document.
+    Delete a document (idempotent by design).
     Only owner can delete.
     """
     await session.delete(document)
     await session.commit()
 
 
-@router.get("/", response_model=list[DocumentResponse], status_code=status.HTTP_200_OK)
+@router.get("/", response_model=PaginatedResponse[DocumentResponse], status_code=status.HTTP_200_OK)
 async def list_user_documents(
-    current_user: User = Depends(get_current_user), session: AsyncSession = Depends(get_session)
-) -> list[Document]:
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+    pagination: PaginationParams = Depends(pagination_params),
+    filters: DocumentFilterParams = Depends(),
+) -> PaginatedResponse[DocumentResponse]:
     """
-    List all documents owned by current user.
+    List all documents owned by current user with pagination, filtering, and sorting.
+
+    Query parameters:
+    - page: Page number (default: 1)
+    - page_size: Items per page (default: 20, max: 100)
+    - search: Search in title/content
+    - sort_by: Field to sort by (default: created_at)
+    - sort_order: asc or desc (default: desc)
     """
+    # Base query
     statement = select(Document).where(Document.owner_id == current_user.id)
+
+    # Apply search filter
+    if filters.search:
+        search_term = f"%{filters.search}%"
+        statement = statement.where(
+            (col(Document.title).ilike(search_term))
+            | (col(Document.description).ilike(search_term))
+        )
+
+    # Get total count
+    count_statement = select(func.count()).select_from(statement.subquery())
+    total_result = await session.execute(count_statement)
+    total = total_result.scalar_one()
+
+    # Apply sorting
+    if filters.sort_by:
+        sort_column = getattr(Document, filters.sort_by, None)
+        if sort_column is not None:
+            if filters.sort_order == SortOrder.DESC:
+                statement = statement.order_by(sort_column.desc())
+            else:
+                statement = statement.order_by(sort_column.asc())
+
+    # Apply pagination
+    statement = statement.offset(pagination.skip).limit(pagination.limit)
+
+    # Execute query
     result = await session.execute(statement)
     documents = result.scalars().all()
 
-    return list(documents)
+    return PaginatedResponse.create(items=list(documents), total=total, pagination=pagination)
 
 
 # === SHORTEN ===
@@ -100,7 +149,6 @@ async def create_short_url(
     session: AsyncSession = Depends(get_session),
 ):
     """Share by creating a short URL for a document."""
-    # Verify document exists
     short_code = generate_short_code(document.id)
 
     # Check for collision
@@ -160,7 +208,6 @@ async def get_short_url_stats(
 
 # Redirect endpoint (separate from /shorten prefix)
 # This should be registered directly on the app with a different router
-
 redirect_router = APIRouter(tags=["redirect"])
 
 

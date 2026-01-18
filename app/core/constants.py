@@ -33,3 +33,10 @@ class UserTier(StrEnum):
         }
 
         return mapping[self]
+
+
+class SortOrder(StrEnum):
+    """Sort order enumeration"""
+
+    ASC = "asc"
+    DESC = "desc"
