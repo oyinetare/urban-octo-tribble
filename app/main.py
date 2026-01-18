@@ -1,18 +1,23 @@
+# app/main.py
+from collections.abc import Awaitable
 from contextlib import asynccontextmanager
+from typing import cast
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
-from app.core import get_settings, redis_service
+from app.config import get_settings
+from app.core import redis_service  # ✅ Don't import notification_service from core
+from app.core.taskiq_broker import broker
 from app.exceptions import AppException
 from app.middleware import (
     https_redirect_middleware,
     rate_limit_middleware,
     security_headers_middleware,
 )
-from app.routes import auth, documents, users
+from app.routes import auth, documents, notifications, users
 
 settings = get_settings()
 
@@ -20,39 +25,56 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from app.core import init_db
+    from app.core.notification import NotificationService
 
     """
-    https://uvicorn.dev/concepts/lifespan/
-
     Lifespan context manager for startup and shutdown events.
-
-    Since Uvicorn is an ASGI server, it supports the ASGI lifespan protocol. This allows you to run startup and shutdown events for your application.
-
-    The lifespan protocol is useful for initializing resources that need to be available throughout the lifetime of the application, such as database connections, caches, or other services.
-
-    Keep in mind that the lifespan is executed only once per application instance. If you have multiple workers, each worker will execute the lifespan independently.
-
-    Startup:
-    - Initialize connections
-
-    Shutdown:
-    - Close connections
     """
-    # Startup
+    # ========================================================================
+    # STARTUP
+    # ========================================================================
+
+    print("🚀 Starting urban-octo-tribble API...")
+
+    # Initialize database
     await init_db()
+
+    # Initialize Redis
     await redis_service.initialize()
+
+    # Initialize TaskIQ broker (for task submission, not worker)
+    if not broker.is_worker_process:
+        await broker.startup()
+        print("✅ TaskIQ broker initialized (submit mode)")
+
+    # Create notification service (not used in main, just for initialization)
+    # The actual service is accessed via dependency injection
+    _ = NotificationService()  # ✅ Create but don't assign to variable
+    print("✅ NotificationService initialized")
 
     yield
 
-    # Shutdown
+    # ========================================================================
+    # SHUTDOWN
+    # ========================================================================
+
+    print("🛑 Shutting down Jubilant-Barnacle API...")
+
+    # Shutdown TaskIQ broker
+    if not broker.is_worker_process:
+        await broker.shutdown()
+        print("✅ TaskIQ broker shutdown")
+
+    # Close Redis connection
     await redis_service.close()
+
+    print("👋 Shutdown complete")
 
 
 app = FastAPI(
     title="urban-octo-tribble API",
     version="1.0.0",
     lifespan=lifespan,
-    # Add OAuth2 scopes documentation (only in development)
     swagger_ui_init_oauth={
         "clientId": "swagger",
         "appName": "Jubilant-Barnacle API",
@@ -60,21 +82,20 @@ app = FastAPI(
     }
     if settings.ENVIRONMENT == "development"
     else None,
-    # middleware=[Middleware(CustomMiddleware)]
 )
 
 
+# =============================================================================
 # MIDDLEWARE CONFIGURATION
-# Order matters! Middleware is executed in reverse order of addition.
+# =============================================================================
 
-# 1. HTTPS Redirect - Should be first (executed last)
 app.middleware("http")(https_redirect_middleware)
 
-# 2. CORS - Must be early
 app.add_middleware(
     CORSMiddleware,  # type: ignore[arg-type]
     allow_origins=[
-        "http://localhost",
+        "http://localhost:3000",
+        "http://localhost:5173",
         "http://localhost:8080",
     ],
     allow_credentials=True,
@@ -82,20 +103,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 3. Trusted Host
 app.add_middleware(
     TrustedHostMiddleware,  # type: ignore[arg-type]
-    allowed_hosts=["localhost", "127.0.0.1"],
+    allowed_hosts=["localhost", "127.0.0.1", "*.yourdomain.com"],
 )
 
-# 4. Security Headers
 app.middleware("http")(security_headers_middleware)
-
-# 5. Rate Limiting
 app.middleware("http")(rate_limit_middleware)
 
 
+# =============================================================================
 # EXCEPTION HANDLERS
+# =============================================================================
+
+
 @app.exception_handler(AppException)
 async def app_exception_handler(request: Request, exc: AppException):
     return JSONResponse(
@@ -110,35 +131,59 @@ async def app_exception_handler(request: Request, exc: AppException):
     )
 
 
+# =============================================================================
 # ROUTES
+# =============================================================================
 api_prefix = "/api/v1"
 app.include_router(users.router, prefix=api_prefix)
 app.include_router(auth.router, prefix=api_prefix)
 app.include_router(documents.router, prefix=api_prefix)
-# Redirect router WITHOUT api prefix (for cleaner URLs like /d/abc123)
 app.include_router(documents.redirect_router)
+app.include_router(notifications.router, prefix=api_prefix)  # ✅ Add prefix
 
 
 @app.get("/")
 def root():
-    return {
-        "message": "Welcome to urban-octo-tribble API",
+    """Root endpoint."""
+    response = {
+        "message": "Welcome to Jubilant-Barnacle API",
         "version": "1.0.0",
     }
 
+    if settings.ENVIRONMENT == "development":
+        response["docs"] = "/docs"
+        response["redoc"] = "/redoc"
+        response["oauth2_scopes"] = {
+            "read": "Read access to resources",
+            "write": "Write access to resources",
+            "admin": "Admin access to all resources",
+            "moderate": "Moderate content",
+        }
+
+    return response
+
 
 @app.get("/health")
-def health_check():
-    """
-    Health check endpoint.
+async def health_check():
+    """Health check endpoint."""
+    queue_sizes = {}
+    if redis_service.is_available and redis_service.client:
+        try:
+            main_queue = await cast(Awaitable[int], redis_service.client.llen("taskiq:main"))
+            dlq_queue = await cast(Awaitable[int], redis_service.client.llen("queue:webhooks:dlq"))
+            queue_sizes = {
+                "main_queue": main_queue,
+                "dead_letter_queue": dlq_queue,
+            }
+        except Exception:
+            queue_sizes = {"error": "Failed to fetch queue sizes"}
 
-    Returns:
-        dict: Status and service availability
-    """
     return {
         "status": "ok",
         "environment": settings.ENVIRONMENT,
         "services": {
             "redis": redis_service.is_available,
+            "taskiq": broker.is_worker_process or redis_service.is_available,
         },
+        "queues": queue_sizes if redis_service.is_available else None,
     }

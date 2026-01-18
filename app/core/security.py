@@ -4,7 +4,7 @@ import jwt
 from jwt.exceptions import InvalidTokenError
 from pwdlib import PasswordHash
 
-from app.core.config import get_settings
+from app.config import get_settings
 
 settings = get_settings()
 

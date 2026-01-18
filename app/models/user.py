@@ -10,7 +10,7 @@ from app.models import BaseModel
 # This import only happens during type checking, not at runtime
 # standard Python pattern for avoiding circular imports while keeping type checkers happy
 if TYPE_CHECKING:
-    from app.models import Document
+    from app.models import Document, Notification
 
 
 class User(BaseModel, table=True):
@@ -35,8 +35,12 @@ class User(BaseModel, table=True):
     # Timestamps
     last_login: datetime = Field(default_factory=datetime.now)
 
+    # Webhook URL for notification delivery
+    webhook_url: str | None = Field(default=None, max_length=500)
+
     # Relationships
     documents: list["Document"] = Relationship(back_populates="owner")
+    notifications: list["Notification"] = Relationship(back_populates="user")
 
     @property
     def role(self) -> UserRole:

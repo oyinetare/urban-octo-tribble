@@ -8,7 +8,7 @@ Provides two CSP modes:
 
 from fastapi import Request
 
-from app.core import get_settings
+from app.config import get_settings
 
 settings = get_settings()
 

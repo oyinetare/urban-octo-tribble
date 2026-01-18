@@ -3,7 +3,7 @@
 from fastapi import Request, status
 from fastapi.responses import RedirectResponse
 
-from app.core import get_settings
+from app.config import get_settings
 
 settings = get_settings()
 
