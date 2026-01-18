@@ -6,8 +6,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
+from app.config import get_settings
 from app.core import get_session, redis_service, token_manager
-from app.core.config import get_settings
 from app.dependencies import oauth2_scheme
 from app.exceptions import (
     AppException,

@@ -163,3 +163,21 @@ def require_role(required_role: str):
         return current_user
 
     return role_checker
+
+
+def get_notification_service():
+    """
+    Dependency for getting the notification service.
+
+    Usage in routes:
+        async def create_notification(
+            service: NotificationService = Depends(get_notification_service)
+        ):
+            await service.notify(notification)
+    """
+    # Import here to avoid circular dependency
+    from app.core.notification import notification_service
+
+    if notification_service is None:
+        raise RuntimeError("NotificationService not initialized")
+    return notification_service

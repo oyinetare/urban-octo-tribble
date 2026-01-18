@@ -6,7 +6,7 @@ from sqlmodel import SQLModel
 from alembic import context
 
 # Import your models and config
-from app.core import get_settings
+from app.config import get_settings
 
 # Import models to ensure they're registered
 from app.models import Document, User  # noqa: F401

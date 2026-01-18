@@ -37,7 +37,7 @@
     7. Comprehensive tests and production configuration
 2. **RAG System, AI-powered document analysis with semantic search and RAG**
     1. File upload with MinIO (S3-compatible storage)
-    2. Text Extraction Pipeline implemented with Background workers to extract text from documents, Document Chunking
+    2. Text Extraction Pipeline implemented with Background workers to extract text from documents
     3. Document Chunking where documents are split into 500-token chunks with 50-token overlap
     4. Vector Embeddings & Search: Generating embeddings and implemented semantic search with Qdrant
     5. Combine search with Claude + Ollama for document Q&A (RAG Implementation)
@@ -282,6 +282,7 @@ ___
       - [Best practices for RESTful web API design](https://learn.microsoft.com/en-us/azure/architecture/best-practices/api-design)
   - [FastAPI Documentation](https://fastapi.tiangolo.com/learn/)
   - [The System Design Primer by Donne Martin](https://github.com/donnemartin/system-design-primer)
+  - [Learn Docker by building a Microservice](https://dwmkerr.com/learn-docker-by-building-a-microservice/)
 
 ### Books
   - Xu, A. (2020). System design interview – An insider's guide (2nd ed.). Byte Code LLC / Independently published.

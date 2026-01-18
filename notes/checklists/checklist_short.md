@@ -228,8 +228,8 @@
     - [ ] `GET /notifications` (paginated)
     - [ ] `GET /notifications/unread` (count)
 - [ ] Management API
-    - [ ] PATCH /notifications/{id}/read
-    - [ ] DELETE /notifications/{id}.
+    - [ ] `PATCH /notifications/{id}/read`
+    - [ ] `DELETE /notifications/{id}`
 - [ ] In-App Channel: Logic to save notifications to the Postgres DB for UI display
 - [ ] Reliable Webhook Channel:
     - [ ] Create background task for HTTP POST delivery.
