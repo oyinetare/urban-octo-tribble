@@ -253,6 +253,7 @@
 ---
 
 ## Phase 1.7: Idempotency, URI Versioning, Pagination, Filtering & Sorting
+
 ### Tasks
 - [x] Create schemas for pagination and document filtering
 - [x] Create pagination_params Dependency
@@ -260,7 +261,7 @@
 - [x] Add Versioning middleware
 - [x] Add get/set idepotent repsonse to redis
 - [x] Add idempotency, filtering and sorting to document route (DELETE, PUT is idempotent by design, GET Supports idempotency via Idempotency-Key header)
-- [x] Test
+- [ ] Test
 
 ### Done When
 - [ ] For any collection endpoints

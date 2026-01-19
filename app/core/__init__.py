@@ -1,3 +1,4 @@
+from app.core.base62Encoder import base62_encoder
 from app.core.config import get_settings
 from app.core.constants import SortOrder, UserRole, UserTier
 from app.core.database import AsyncSessionLocal, get_session, init_db
@@ -16,4 +17,5 @@ __all__ = [
     "redis_service",
     "token_manager",
     "id_generator",
+    "base62_encoder",
 ]

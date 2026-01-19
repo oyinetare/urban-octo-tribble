@@ -4,7 +4,7 @@ from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col, select
 
-from app.core import SortOrder, get_session
+from app.core import SortOrder, base62_encoder, get_session, id_generator
 from app.dependencies import get_current_user, pagination_params, verify_document_ownership
 from app.exceptions import AppException
 from app.models import Document, ShortURL, User
@@ -18,7 +18,6 @@ from app.schemas import (
     ShortenResponse,
     StatsResponse,
 )
-from app.utils import generate_short_code
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -149,21 +148,14 @@ async def create_short_url(
     session: AsyncSession = Depends(get_session),
 ):
     """Share by creating a short URL for a document."""
-    short_code = generate_short_code(document.id)
+    # 1. Generate a brand new unique ID using the Snowflake generator
+    unique_id = id_generator.generate()
 
-    # Check for collision
-    statement = select(ShortURL).where(ShortURL.short_code == short_code)
-    existing_result = await session.execute(statement)
-    existing = existing_result.scalar_one_or_none()
+    # 2. Encode THIS unique ID (not the document ID)
+    short_code = base62_encoder.encode(unique_id)
 
-    if existing:
-        # Handle collision - add random suffix
-        import random
-
-        from app.utils.url_shortener import Base62Encoder
-
-        suffix = "".join(random.choices(Base62Encoder.ALPHABET, k=2))
-        short_code = short_code[:5] + suffix  # Keep first 5 chars, add 2 random
+    # 3. Create record (No collision check needed since using Snowflake)
+    short_url = ShortURL(short_code=short_code, document_id=document.id, clicks=0)
 
     # Create short URL
     short_url = ShortURL(short_code=short_code, document_id=document.id, clicks=0)
