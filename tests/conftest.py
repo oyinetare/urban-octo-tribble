@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel
 
-from app.core import get_session, token_manager
+from app.core import get_session, redis_service, token_manager
 from app.main import app
 from app.models import Document, User
 
@@ -89,6 +89,11 @@ async def dispose_engine_after_tests():
     yield
     # This runs after all tests are finished
     # SQLAlchemy 2.0+ requires explicit disposal for clean async exit
+    # 1. Close Redis connection pool properly (2026 standard)
+    if redis_service.client:
+        await redis_service.client.aclose()
+
+    # 2. Dispose of the engine pool to release the StaticPool SQLite connection
     await test_engine.dispose()
 
 
