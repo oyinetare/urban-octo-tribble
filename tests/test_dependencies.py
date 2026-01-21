@@ -46,7 +46,7 @@ class TestDependenciesUnit:
 
         result = await verify_document_ownership(
             document_id=test_document.id,
-            security_scopes=SecurityScopes(scopes=[]),
+            # security_scopes=SecurityScopes(scopes=[]),
             current_user=admin_user,
             session=session,
         )
@@ -57,7 +57,7 @@ class TestDependenciesUnit:
         # Create a user with role='user' but inject the 'admin' scope via SecurityScopes
         result = await verify_document_ownership(
             document_id=test_document.id,
-            security_scopes=SecurityScopes(scopes=["admin"]),
+            # security_scopes=SecurityScopes(scopes=["admin"]),
             current_user=test_user,  # Regular owner
             session=session,
         )
@@ -77,7 +77,7 @@ class TestDependenciesUnit:
         with pytest.raises(NotAuthorizedDocumenAccessException):
             await verify_document_ownership(
                 document_id=test_document.id,
-                security_scopes=SecurityScopes(scopes=["read"]),
+                # security_scopes=SecurityScopes(scopes=["read"]),
                 current_user=other_user,
                 session=session,
             )

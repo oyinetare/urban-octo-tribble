@@ -45,7 +45,7 @@ class TestInputValidation:
     async def test_create_document_missing_fields(self, client: AsyncClient, auth_headers):
         """Test creating document with missing required fields."""
         response = await client.post(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             headers=auth_headers,
             json={},  # Empty body
         )
@@ -55,7 +55,7 @@ class TestInputValidation:
     async def test_create_document_invalid_data_types(self, client: AsyncClient, auth_headers):
         """Test creating document with invalid data types."""
         response = await client.post(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             headers=auth_headers,
             json={
                 "title": 12345,  # Should be string
@@ -86,17 +86,17 @@ class TestInputValidation:
     async def test_pagination_invalid_parameters(self, client: AsyncClient, auth_headers):
         """Test pagination with invalid parameters."""
         # Negative page number
-        response = await client.get("/api/v1/documents/?page=-1", headers=auth_headers)
+        response = await client.get("/api/v1/documents?page=-1", headers=auth_headers)
         assert response.status_code == 422
 
         # Page size too large
-        response = await client.get("/api/v1/documents/?page_size=1000", headers=auth_headers)
+        response = await client.get("/api/v1/documents?page_size=1000", headers=auth_headers)
         assert response.status_code == 422
 
     @pytest.mark.asyncio
     async def test_pagination_zero_page(self, client: AsyncClient, auth_headers):
         """Test pagination with page=0."""
-        response = await client.get("/api/v1/documents/?page=0", headers=auth_headers)
+        response = await client.get("/api/v1/documents?page=0", headers=auth_headers)
         assert response.status_code == 422
 
 
@@ -108,7 +108,7 @@ class TestEdgeCases:
         """Test creating document with very long title."""
         long_title = "A" * 10000
         response = await client.post(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             headers=auth_headers,
             json={"title": long_title, "content": "Test"},
         )
@@ -119,7 +119,7 @@ class TestEdgeCases:
     async def test_unicode_in_document(self, client: AsyncClient, auth_headers):
         """Test creating document with unicode characters."""
         response = await client.post(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             headers=auth_headers,
             json={"title": "测试文档 🚀 Тест", "content": "Unicode content: émojis 🎉"},
         )
@@ -131,7 +131,7 @@ class TestEdgeCases:
     async def test_special_characters_in_search(self, client: AsyncClient, auth_headers):
         """Test search with special characters."""
         response = await client.get(
-            "/api/v1/documents/?search=%';DROP TABLE documents;--", headers=auth_headers
+            "/api/v1/documents?search=%';DROP TABLE documents;--", headers=auth_headers
         )
         # Should not cause SQL injection
         assert response.status_code == 200
@@ -139,14 +139,14 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_empty_search_query(self, client: AsyncClient, auth_headers):
         """Test search with empty query."""
-        response = await client.get("/api/v1/documents/?search=", headers=auth_headers)
+        response = await client.get("/api/v1/documents?search=", headers=auth_headers)
         assert response.status_code == 200
 
     @pytest.mark.asyncio
     async def test_malformed_json(self, client: AsyncClient, auth_headers):
         """Test sending malformed JSON."""
         response = await client.post(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             headers={**auth_headers, "Content-Type": "application/json"},
             content=b"{invalid json",
         )
@@ -247,7 +247,7 @@ class TestConcurrency:
                 await asyncio.sleep(i * 0.02)
 
                 response = await client.post(
-                    "/api/v1/documents/",
+                    "/api/v1/documents",
                     headers=headers,
                     json={
                         "title": f"Concurrent Document {i}",
@@ -306,14 +306,14 @@ class TestIdempotency:
 
         # First request
         response1 = await client.post(
-            "/api/v1/documents/", headers=headers, json={"title": "Test", "content": "Test"}
+            "/api/v1/documents", headers=headers, json={"title": "Test", "content": "Test"}
         )
         assert response1.status_code == 201
         _id1 = response1.json()["id"]
 
         # Second request with same key
         response2 = await client.post(
-            "/api/v1/documents/", headers=headers, json={"title": "Test", "content": "Test"}
+            "/api/v1/documents", headers=headers, json={"title": "Test", "content": "Test"}
         )
 
         # If Redis is available, should return cached response

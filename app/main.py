@@ -5,6 +5,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
+from app.api.v1 import api_router as v1_router
+from app.api.v1.routes.documents import redirect_router
+
+# from app.api.v2 import api_router as v2_router
 from app.core import get_settings, redis_service
 from app.exceptions import AppException
 from app.middleware import (
@@ -14,7 +18,6 @@ from app.middleware import (
     rate_limit_middleware,
     security_headers_middleware,
 )
-from app.routes import auth, documents, users
 
 settings = get_settings()
 
@@ -54,6 +57,7 @@ app = FastAPI(
     title="urban-octo-tribble API",
     version="1.0.0",
     lifespan=lifespan,
+    # redirect_slashes=False,
     # Add OAuth2 scopes documentation (only in development)
     swagger_ui_init_oauth={
         "clientId": "swagger",
@@ -120,12 +124,23 @@ async def app_exception_handler(request: Request, exc: AppException):
 
 
 # ROUTES
-api_prefix = "/api/v1"
-app.include_router(users.router, prefix=api_prefix)
-app.include_router(auth.router, prefix=api_prefix)
-app.include_router(documents.router, prefix=api_prefix)
+# Debug endpoint to see all registered routes
+# @app.get("/debug/routes")
+# def list_routes():
+#     """Debug endpoint to see all registered routes."""
+#     routes = []
+#     for route in app.routes:
+#         if hasattr(route, "methods"):
+#             routes.append({
+#                 "path": route.path,
+#                 "name": route.name,
+#                 "methods": list(route.methods)
+#             })
+#     return {"routes": routes}
+
+app.include_router(v1_router, prefix="/api/v1")
 # Redirect router WITHOUT api prefix (for cleaner URLs like /d/abc123)
-app.include_router(documents.redirect_router)
+app.include_router(redirect_router)
 
 
 @app.get("/")

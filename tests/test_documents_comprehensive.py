@@ -11,7 +11,7 @@ class TestDocumentsComprehensive:
     async def test_create_document_full(self, client: AsyncClient, auth_headers):
         """Test creating document with all fields."""
         response = await client.post(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             headers=auth_headers,
             json={
                 "title": "Complete Document",
@@ -29,7 +29,7 @@ class TestDocumentsComprehensive:
     async def test_create_document_minimal(self, client: AsyncClient, auth_headers):
         """Test creating document with minimal fields."""
         response = await client.post(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             headers=auth_headers,
             json={
                 "title": "Minimal Doc",
@@ -120,7 +120,7 @@ class TestDocumentsComprehensive:
         )
         headers = {"Authorization": f"Bearer {token}"}
 
-        response = await client.get("/api/v1/documents/", headers=headers)
+        response = await client.get("/api/v1/documents", headers=headers)
         assert response.status_code == 200
         data = response.json()
         assert data["total"] == 0
@@ -142,7 +142,7 @@ class TestDocumentsComprehensive:
         await session.commit()
 
         # Get first page
-        response = await client.get("/api/v1/documents/?page=1&page_size=10", headers=auth_headers)
+        response = await client.get("/api/v1/documents?page=1&page_size=10", headers=auth_headers)
         assert response.status_code == 200
         data = response.json()
         assert len(data["items"]) == 10
@@ -165,7 +165,7 @@ class TestDocumentsComprehensive:
         await session.commit()
 
         # Search for Python
-        response = await client.get("/api/v1/documents/?search=Python", headers=auth_headers)
+        response = await client.get("/api/v1/documents?search=Python", headers=auth_headers)
         assert response.status_code == 200
         data = response.json()
         assert any("Python" in item["title"] for item in data["items"])
@@ -174,7 +174,7 @@ class TestDocumentsComprehensive:
     async def test_list_documents_sort_asc(self, client: AsyncClient, auth_headers):
         """Test sorting documents ascending."""
         response = await client.get(
-            "/api/v1/documents/?sort_by=title&sort_order=asc", headers=auth_headers
+            "/api/v1/documents?sort_by=title&sort_order=asc", headers=auth_headers
         )
         assert response.status_code == 200
 
@@ -186,6 +186,6 @@ class TestDocumentsComprehensive:
     ):
         """Test sorting documents descending."""
         response = await client.get(
-            "/api/v1/documents/?sort_by=created_at&sort_order=desc", headers=auth_headers
+            "/api/v1/documents?sort_by=created_at&sort_order=desc", headers=auth_headers
         )
         assert response.status_code == 200

@@ -8,7 +8,7 @@ from app.core import SortOrder, get_session
 from app.dependencies import get_current_user, pagination_params, verify_document_ownership
 from app.exceptions import AppException
 from app.models import Document, ShortURL, User
-from app.schemas import (
+from app.schemas.v1 import (
     DocumentCreate,
     DocumentFilterParams,
     DocumentResponse,
@@ -20,10 +20,10 @@ from app.schemas import (
 )
 from app.utility import base62_encoder, id_generator
 
-router = APIRouter(prefix="/documents", tags=["documents"])
+router = APIRouter()
 
 
-@router.post("/", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
 async def create_document(
     document_data: DocumentCreate,
     session: AsyncSession = Depends(get_session),
@@ -34,7 +34,12 @@ async def create_document(
 
     Supports idempotency via Idempotency-Key header.
     """
-    document = Document(**document_data.model_dump(), owner_id=current_user.id)
+    document = Document(
+        title=document_data.title,
+        description=document_data.description,
+        owner_id=current_user.id,
+        shorturls=[],  # Initialize empty list
+    )
 
     session.add(document)
     await session.commit()
@@ -88,7 +93,7 @@ async def delete_document(
     await session.commit()
 
 
-@router.get("/", response_model=PaginatedResponse[DocumentResponse], status_code=status.HTTP_200_OK)
+@router.get("", response_model=PaginatedResponse[DocumentResponse], status_code=status.HTTP_200_OK)
 async def list_user_documents(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
@@ -140,40 +145,6 @@ async def list_user_documents(
     return PaginatedResponse.create(items=list(documents), total=total, pagination=pagination)
 
 
-# === SHORTEN ===
-@router.post(
-    "/share/{document_id}", status_code=status.HTTP_201_CREATED, response_model=ShortenResponse
-)
-async def create_short_url(
-    document: Document = Depends(verify_document_ownership),
-    session: AsyncSession = Depends(get_session),
-):
-    """Share by creating a short URL for a document."""
-    # 1. Generate a brand new unique ID using the Snowflake generator
-    unique_id = id_generator.generate()
-
-    # 2. Encode THIS unique ID (not the document ID)
-    short_code = base62_encoder.encode(unique_id)
-
-    # 3. Create record (No collision check needed since using Snowflake)
-    short_url = ShortURL(short_code=short_code, document_id=document.id, clicks=0)
-
-    # Create short URL
-    short_url = ShortURL(short_code=short_code, document_id=document.id, clicks=0)
-
-    session.add(short_url)
-    await session.commit()
-    await session.refresh(short_url)
-
-    return ShortenResponse(
-        short_code=short_url.short_code,
-        document_id=short_url.document_id,
-        clicks=short_url.clicks,
-        original_url=f"/documents/{document.id}",
-        short_url=f"/d/{short_url.short_code}",
-    )
-
-
 @router.get("/{short_code}/stats", response_model=StatsResponse)
 async def get_short_url_stats(
     short_code: str,
@@ -193,6 +164,50 @@ async def get_short_url_stats(
         document_id=short_url.document_id,
         clicks=short_url.clicks,
         created_at=short_url.created_at.isoformat(),
+    )
+
+
+# === SHORTEN ===
+@router.post(
+    "/share/{document_id}", status_code=status.HTTP_201_CREATED, response_model=ShortenResponse
+)
+async def create_short_url(
+    document: Document = Depends(verify_document_ownership),
+    session: AsyncSession = Depends(get_session),
+):
+    """Share by creating a short URL for a document."""
+
+    # Check if short URL already exists for this document
+    existing = await session.execute(select(ShortURL).where(ShortURL.document_id == document.id))
+    existing_url = existing.scalar_one_or_none()
+
+    if existing_url:
+        # Return existing short URL instead of creating duplicate
+        return ShortenResponse(
+            short_code=existing_url.short_code,
+            document_id=existing_url.document_id,
+            clicks=existing_url.clicks,
+            original_url=f"/api/v1/documents/{document.id}",
+            short_url=f"/d/{existing_url.short_code}",
+        )
+
+    # Generate unique ID and encode
+    unique_id = id_generator.generate()
+    short_code = base62_encoder.encode(unique_id)
+
+    # Create NEW short URL (only once!)
+    short_url = ShortURL(short_code=short_code, document_id=document.id, clicks=0)
+
+    session.add(short_url)
+    await session.commit()
+    await session.refresh(short_url)
+
+    return ShortenResponse(
+        short_code=short_url.short_code,
+        document_id=short_url.document_id,
+        clicks=short_url.clicks,
+        original_url=f"/api/v1/documents/{document.id}",
+        short_url=f"/d/{short_url.short_code}",
     )
 
 

@@ -13,7 +13,7 @@ class TestDocuments:
     async def test_create_document(self, client: AsyncClient, auth_headers):
         """Test creating a document."""
         response = await client.post(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             headers=auth_headers,
             json={
                 "title": "New Document",
@@ -29,9 +29,7 @@ class TestDocuments:
     @pytest.mark.asyncio
     async def test_create_document_without_auth(self, client: AsyncClient):
         """Test creating document without authentication fails."""
-        response = await client.post(
-            "/api/v1/documents/", json={"title": "Test", "content": "Test"}
-        )
+        response = await client.post("/api/v1/documents", json={"title": "Test", "content": "Test"})
         assert response.status_code == 401
 
     @pytest.mark.asyncio
@@ -114,7 +112,7 @@ class TestDocuments:
         await session.execute(select(func.count(Document.id)))
 
         # Test first page
-        response = await client.get("/api/v1/documents/?page=1&page_size=10", headers=auth_headers)
+        response = await client.get("/api/v1/documents?page=1&page_size=10", headers=auth_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -134,7 +132,7 @@ class TestDocuments:
         session.add_all([doc1, doc2])
         await session.commit()
 
-        response = await client.get("/api/v1/documents/?search=Python", headers=auth_headers)
+        response = await client.get("/api/v1/documents?search=Python", headers=auth_headers)
         assert response.status_code == 200
         data = response.json()
         assert len(data["items"]) == 1
@@ -144,6 +142,6 @@ class TestDocuments:
     async def test_list_documents_sorting(self, client: AsyncClient, auth_headers):
         """Test sorting documents."""
         response = await client.get(
-            "/api/v1/documents/?sort_by=title&sort_order=asc", headers=auth_headers
+            "/api/v1/documents?sort_by=title&sort_order=asc", headers=auth_headers
         )
         assert response.status_code == 200

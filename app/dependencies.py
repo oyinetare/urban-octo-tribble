@@ -1,4 +1,6 @@
-from fastapi import Depends, Query, Security
+from typing import Annotated
+
+from fastapi import Depends, Path, Query, Security
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
@@ -14,7 +16,7 @@ from app.exceptions import (
     UserNotFoundException,
 )
 from app.models import Document, User
-from app.schemas import PaginationParams
+from app.schemas.v1 import PaginationParams
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/api/v1/auth/login",
@@ -117,16 +119,21 @@ async def get_admin_user(
 
 
 async def verify_document_ownership(
-    document_id: int,
-    security_scopes: SecurityScopes,  # Inject this to check scopes directly
+    document_id: Annotated[int, Path()],  # Explicitly from path
     current_user: User = Security(get_current_user, scopes=["read"]),
     session: AsyncSession = Depends(get_session),
 ) -> Document:
     """
     Dependency to verify that the current user owns the document or has admin access.
 
+    Args:
+        document_id: Document ID from path parameter
+        current_user: Current authenticated user with 'read' scope
+        session: Database session
+
     Raises:
-        HTTPException: 404 if document not found, 403 if not owned by user
+        DocumentNotFoundException: If document doesn't exist
+        NotAuthorizedDocumenAccessException: If user doesn't own the document
 
     Returns:
         Document: The document if user is the owner or admin
@@ -138,10 +145,8 @@ async def verify_document_ownership(
     if not document:
         raise DocumentNotFoundException()
 
-    # FIX: Check for BOTH the database role AND the token scope
-    is_admin = current_user.role == "admin" or "admin" in security_scopes.scopes
-
-    if is_admin:
+    # Admin users can access all documents
+    if current_user.role == "admin":
         return document
 
     # Regular users can only access their own documents

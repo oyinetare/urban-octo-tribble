@@ -145,7 +145,7 @@ curl -X POST 'http://localhost:8000/api/v1/auth/logout' \
 ### Docments
 ```bash
 # 1. Create a document
-curl -X POST http://localhost:8000/api/v1/documents/ \
+curl -X POST http://localhost:8000/api/v1/documents \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"title": "Test Doc", "description": "Test"}' | jq
@@ -156,7 +156,7 @@ curl -X GET http://localhost:8000/api/v1/documents/{docuemnt_id} \
   -H "Content-Type: application/json" | jq
 
 # 3. Get all documents
-curl -X GET http://localhost:8000/api/v1/documents/ \
+curl -X GET http://localhost:8000/api/v1/documents \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" | jq
 
@@ -179,7 +179,7 @@ curl -X POST http://localhost:8000/api/v1/documents/share/{docuemnt_id} \
 
 ```bash
 # Test Security headers present in responses
-curl -X GET -I http://localhost:8000/d/2oIP0X6rlkI
+curl -X GET -I http://localhost:8000/d/2oLIZi1bnwI
 curl -v http://localhost:8000/
 ```
 ___

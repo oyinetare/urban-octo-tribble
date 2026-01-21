@@ -36,10 +36,10 @@ class TestMiddlewareComprehensive:
     async def test_idempotency_without_key(self, client: AsyncClient, auth_headers):
         """Test POST without idempotency key works normally."""
         response1 = await client.post(
-            "/api/v1/documents/", headers=auth_headers, json={"title": "Test", "content": "Test"}
+            "/api/v1/documents", headers=auth_headers, json={"title": "Test", "content": "Test"}
         )
         response2 = await client.post(
-            "/api/v1/documents/", headers=auth_headers, json={"title": "Test", "content": "Test"}
+            "/api/v1/documents", headers=auth_headers, json={"title": "Test", "content": "Test"}
         )
 
         # Both should succeed

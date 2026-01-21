@@ -11,7 +11,7 @@ class TestDocumentsEdgeCases:
     async def test_create_document_with_description(self, client: AsyncClient, auth_headers):
         """Test creating document with description."""
         response = await client.post(
-            "/api/v1/documents/",
+            "/api/v1/documents",
             headers=auth_headers,
             json={
                 "title": "Doc with description",
@@ -36,7 +36,7 @@ class TestDocumentsEdgeCases:
 
         # Test ascending sort
         response = await client.get(
-            "/api/v1/documents/?sort_by=title&sort_order=asc", headers=auth_headers
+            "/api/v1/documents?sort_by=title&sort_order=asc", headers=auth_headers
         )
         assert response.status_code == 200
         items = response.json()["items"]
@@ -71,7 +71,7 @@ class TestDocumentsEdgeCases:
         session.add(doc)
         await session.commit()
 
-        response = await client.get("/api/v1/documents/?search=unique", headers=auth_headers)
+        response = await client.get("/api/v1/documents?search=unique", headers=auth_headers)
         assert response.status_code == 200
         items = response.json()["items"]
         assert len(items) > 0

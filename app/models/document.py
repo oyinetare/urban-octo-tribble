@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING
 
+from sqlalchemy import BigInteger
 from sqlmodel import Field, Relationship
 
 from app.models import BaseModel
@@ -26,6 +27,7 @@ class Document(BaseModel, table=True):
     owner_id: int = Field(
         foreign_key="users.id",
         index=True,
+        sa_type=BigInteger,
     )
     owner: "User" = Relationship(back_populates="documents")
     shorturls: list["ShortURL"] = Relationship(back_populates="document")

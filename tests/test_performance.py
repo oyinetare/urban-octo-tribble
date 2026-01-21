@@ -75,7 +75,7 @@ class TestPerformance:
 
         # Time the query
         start = time.time()
-        response = await client.get("/api/v1/documents/?page=1&page_size=50", headers=auth_headers)
+        response = await client.get("/api/v1/documents?page=1&page_size=50", headers=auth_headers)
         duration = time.time() - start
 
         assert response.status_code == 200
