@@ -23,6 +23,17 @@ class Settings(BaseSettings):
     REDIS_PORT: int = 6379
     REDIS_PASSWORD: str | None = None
 
+    # MinIO / S3 Storage
+    MINIO_ENDPOINT: str
+    MINIO_ACCESS_KEY: str
+    MINIO_SECRET_KEY: str
+    MINIO_BUCKET_NAME: str = "documents"
+    MINIO_USE_SSL: bool = False
+
+    # File Upload
+    MAX_UPLOAD_SIZE: int = 10485760  # 10MB
+    ALLOWED_EXTENSIONS: str = "pdf,txt,doc,docx,md,xlsx,pptx"
+
     model_config = SettingsConfigDict(env_file=".env")
 
 

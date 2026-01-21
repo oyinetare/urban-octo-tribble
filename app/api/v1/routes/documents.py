@@ -216,7 +216,7 @@ async def create_short_url(
 
 # Redirect endpoint (separate from /shorten prefix)
 # This should be registered directly on the app with a different router
-redirect_router = APIRouter(tags=["redirect"])
+redirect_router = APIRouter(tags=["Documents"])
 
 
 @redirect_router.get("/d/{short_code}")

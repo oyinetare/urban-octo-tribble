@@ -10,6 +10,7 @@ dependencies = [
     "fakeredis>=2.33.0",
     "fastapi[standard]>=0.128.0",
     "greenlet>=3.3.0",
+    "minio>=7.2.20",
     "psycopg2-binary>=2.9.11",
     "pwdlib[argon2]>=0.3.0",
     "pyjwt>=2.10.1",

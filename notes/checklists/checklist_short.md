@@ -340,7 +340,7 @@
 **What:** File upload with MinIO (S3-compatible storage)
 
 ### Tasks
-- [ ] Add MinIO to Docker Compose
+- [x] Add MinIO to Docker Compose
 - [ ] Create storage buckets
 - [ ] Configure access policies
 - [ ] Test connectivity

@@ -9,7 +9,7 @@ gaf: # git add . and run format code with ruff
 	uv run ruff format .
 	uv run ruff check --fix .
 	uv run pre-commit run --all-files
-	git add .
+# 	git add .
 
 install:  ## Install production dependencies
 	uv sync
