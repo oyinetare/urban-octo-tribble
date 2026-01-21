@@ -341,7 +341,7 @@
 
 ### Tasks
 - [x] Add MinIO to Docker Compose
-- [ ] Create storage buckets
+- [x] Create storage buckets
 - [ ] Configure access policies
 - [ ] Test connectivity
 - [ ] `POST /documents/upload` - Multipart file upload

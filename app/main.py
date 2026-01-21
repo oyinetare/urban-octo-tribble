@@ -18,6 +18,7 @@ from app.middleware import (
     rate_limit_middleware,
     security_headers_middleware,
 )
+from app.services import StorageService
 
 settings = get_settings()
 
@@ -44,6 +45,16 @@ async def lifespan(app: FastAPI):
     - Close connections
     """
     # Startup
+    # Initialize storage
+    storage = StorageService(
+        endpoint=settings.MINIO_ENDPOINT,
+        access_key=settings.MINIO_ACCESS_KEY,
+        secret_key=settings.MINIO_SECRET_KEY,
+        bucket_name=settings.MINIO_DOCUMENTS_BUCKET_NAME,
+        use_ssl=settings.MINIO_USE_SSL,
+    )
+    app.state.storage = storage
+
     await init_db()
     await redis_service.initialize()
 

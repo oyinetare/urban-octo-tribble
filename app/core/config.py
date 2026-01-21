@@ -27,8 +27,10 @@ class Settings(BaseSettings):
     MINIO_ENDPOINT: str
     MINIO_ACCESS_KEY: str
     MINIO_SECRET_KEY: str
-    MINIO_BUCKET_NAME: str = "documents"
+    MINIO_DOCUMENTS_BUCKET_NAME: str = "documents"
     MINIO_USE_SSL: bool = False
+    MINIO_ROOT_USER: str
+    MINIO_ROOT_PASSWORD: str
 
     # File Upload
     MAX_UPLOAD_SIZE: int = 10485760  # 10MB
