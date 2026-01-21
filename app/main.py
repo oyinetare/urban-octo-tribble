@@ -77,6 +77,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost",
         "http://localhost:8080",
+        "http://localhost:8089",
+        "http://localhost:8000",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -86,7 +88,7 @@ app.add_middleware(
 # 3. Trusted Host
 app.add_middleware(
     TrustedHostMiddleware,  # type: ignore[arg-type]
-    allowed_hosts=["localhost", "127.0.0.1"],
+    allowed_hosts=["localhost", "127.0.0.1", "testserver"],  # Ensure testserver is here
 )
 
 # 4. Security Headers

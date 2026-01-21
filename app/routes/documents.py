@@ -4,7 +4,7 @@ from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col, select
 
-from app.core import SortOrder, base62_encoder, get_session, id_generator
+from app.core import SortOrder, get_session
 from app.dependencies import get_current_user, pagination_params, verify_document_ownership
 from app.exceptions import AppException
 from app.models import Document, ShortURL, User
@@ -18,6 +18,7 @@ from app.schemas import (
     ShortenResponse,
     StatsResponse,
 )
+from app.utility import base62_encoder, id_generator
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 

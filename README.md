@@ -177,7 +177,7 @@ curl -X POST http://localhost:8000/api/v1/documents/share/{docuemnt_id} \
 
 ```bash
 # Test Security headers present in responses
-curl -X GET -I http://localhost:8000/
+curl -X GET -I http://localhost:8000/d/2oIP0X6rlkI
 curl -v http://localhost:8000/
 ```
 ___

@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy import BigInteger, func
 from sqlmodel import Field, SQLModel
 
-from app.core import id_generator
+from app.utility import id_generator
 
 
 class BaseModel(SQLModel):

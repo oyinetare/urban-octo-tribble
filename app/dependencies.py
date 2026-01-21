@@ -118,6 +118,7 @@ async def get_admin_user(
 
 async def verify_document_ownership(
     document_id: int,
+    security_scopes: SecurityScopes,  # Inject this to check scopes directly
     current_user: User = Security(get_current_user, scopes=["read"]),
     session: AsyncSession = Depends(get_session),
 ) -> Document:
@@ -137,8 +138,10 @@ async def verify_document_ownership(
     if not document:
         raise DocumentNotFoundException()
 
-    # Admin can access all documents
-    if current_user.role == "admin":
+    # FIX: Check for BOTH the database role AND the token scope
+    is_admin = current_user.role == "admin" or "admin" in security_scopes.scopes
+
+    if is_admin:
         return document
 
     # Regular users can only access their own documents
