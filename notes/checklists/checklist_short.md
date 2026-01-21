@@ -62,14 +62,14 @@
 - [x] `PUT /documents/{id}` - Update document
 - [x] `DELETE /documents/{id}` - Delete document
 - [x] Set up pytest with fixtures
-- [ ] Test each endpoint
-- [ ] Test validation errors
-- [ ] Achieve 70%+ test coverage
+- [x] Test each endpoint
+- [x] Test validation errors
+- [x] Achieve 70%+ test coverage
 
 ### Done When
-- [ ] All endpoints return correct status codes
-- [ ] Can register user and CRUD documents via Swagger UI
-- [ ] Tests pass with 70%+ coverage
+- [x] All endpoints return correct status codes
+- [x] Can register user and CRUD documents via Swagger UI
+- [x] Tests pass with 70%+ coverage
 - [x] Docker Compose runs everything successfully
 - [x] Alembic migrations work (upgrade/downgrade)
 
@@ -98,10 +98,10 @@
 - [x] CORS configuration
 - [x] HTTPS enforcement
 - [x] Security headers middleware
-- [ ] Test login with valid/invalid credentials
-- [ ] Test protected endpoints without token (401)
-- [ ] Test accessing other user's documents (403)
-- [ ] Test expired tokens
+- [x] Test login with valid/invalid credentials
+- [x] Test protected endpoints without token (401)
+- [x] Test accessing other user's documents (403)
+- [x] Test expired tokens
 
 ### Done When
 - [x] Login returns JWT tokens
@@ -161,7 +161,7 @@
 - [x] Configuration for datacenter/worker IDs
 - [x] Replace auto-increment IDs with Snowflake
 - [x] Update database models
-- [ ] Create migration
+- [x] Create migration
 - [x] Update all ID references
 - [ ] Generate 10,000 IDs - all unique
 - [x] IDs are sortable by time
@@ -197,8 +197,8 @@
 - [x] `GET /{short_code}` - Redirect to document
 - [x] `GET /documents/{short_code}/stats` - View analytics
 - [x] Test Base62 encoding/decoding
-- [ ] Test shortening and redirect
-- [ ] Test collision handling
+- [x] Test shortening and redirect
+- [x] Test collision handling
 - [ ] Test analytics tracking
 
 ### Done When
