@@ -1,0 +1,25 @@
+services:
+  api:
+    # Use the 'builder' stage if your Dockerfile is multi-stage
+    # to keep dev tools available
+    build:
+      context: .
+      target: builder
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - .:/app  # Mount local code for Hot Reloading
+    environment:
+      - ENVIRONMENT=development
+      - DEBUG=True
+    ports:
+      - "8000:8000"
+
+  postgres:
+    # Expose ports in dev so you can use GUI tools like DBeaver
+    ports:
+      - "5432:5432"
+
+  redis:
+    # Expose ports in dev so you can use Redis Insight
+    ports:
+      - "6379:6379"
