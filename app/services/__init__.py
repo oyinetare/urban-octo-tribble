@@ -1,3 +1,3 @@
-from app.services.storage import StorageService
+from app.services.storage import MinIOAdapter
 
-__all__ = ["StorageService"]
+__all__ = ["MinIOAdapter"]

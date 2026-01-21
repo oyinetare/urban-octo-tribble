@@ -17,7 +17,7 @@ from app.exceptions import (
 )
 from app.models import Document, User
 from app.schemas.v1 import PaginationParams
-from app.services import StorageService
+from app.services import MinIOAdapter
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/api/v1/auth/login",
@@ -185,6 +185,6 @@ def pagination_params(
 
 
 # MinIO Storage Service dependencies
-def get_storage_service(request: Request) -> StorageService:
+def get_storage_service(request: Request) -> MinIOAdapter:
     """Get storage service from app state."""
     return request.app.state.storage

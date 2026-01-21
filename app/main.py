@@ -18,7 +18,7 @@ from app.middleware import (
     rate_limit_middleware,
     security_headers_middleware,
 )
-from app.services import StorageService
+from app.services import MinIOAdapter
 
 settings = get_settings()
 
@@ -46,7 +46,7 @@ async def lifespan(app: FastAPI):
     """
     # Startup
     # Initialize storage
-    storage = StorageService(
+    storage = MinIOAdapter(
         endpoint=settings.MINIO_ENDPOINT,
         access_key=settings.MINIO_ACCESS_KEY,
         secret_key=settings.MINIO_SECRET_KEY,
