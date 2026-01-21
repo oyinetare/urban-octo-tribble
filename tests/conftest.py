@@ -44,17 +44,21 @@ def event_loop() -> Generator:
 
 @pytest_asyncio.fixture(scope="function")
 async def session() -> AsyncGenerator[AsyncSession, None]:
-    """Create test database session with proper isolation."""
-    # Create tables
+    """Create test database session with guaranteed cleanup."""
+    # 1. Create tables
     async with test_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
 
-    # Provide session
+    # 2. Provide session with guaranteed closure
     async with TestSessionLocal() as test_session:
-        yield test_session
-        await test_session.rollback()  # Rollback any uncommitted changes
+        try:
+            yield test_session
+        finally:
+            # This block runs even if the test fails
+            await test_session.rollback()
+            await test_session.close()  # CRITICAL: Ensures internal coroutines are awaited
 
-    # Drop tables
+    # 3. Drop tables
     async with test_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.drop_all)
 
@@ -72,9 +76,19 @@ async def client(session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     transport = ASGITransport(app=app)
     # Using 'testserver' to fix the Host Header issue
     async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
-        yield ac
+        try:
+            yield ac
+        finally:
+            # Ensure overrides are cleared even if client usage fails
+            app.dependency_overrides.clear()
 
-    app.dependency_overrides.clear()
+
+@pytest_asyncio.fixture(scope="session", autouse=True)
+async def cleanup_engine():
+    """Ensure the engine pool is disposed of to prevent 'Connection._cancel' warnings."""
+    yield
+    # This runs after all tests are finished
+    await test_engine.dispose()
 
 
 @pytest_asyncio.fixture
