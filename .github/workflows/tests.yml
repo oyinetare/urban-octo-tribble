@@ -10,10 +10,16 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      DATABASE_URL: "sqlite+aiosqlite:///:memory:"
-      SECRET_KEY: "ci-test-secret-key-not-for-production"
-      REDIS_HOST: localhost
-      REDIS_PORT: 6379
+        DATABASE_URL: "sqlite+aiosqlite:///:memory:"
+        SECRET_KEY: "ci-test-secret-key-not-for-production"
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379
+        MINIO_ENDPOINT: localhost:9000
+        MINIO_ACCESS_KEY: minioadmin
+        MINIO_SECRET_KEY: minioadmin
+        MINIO_ROOT_USER: minioadmin
+        MINIO_ROOT_PASSWORD: minioadmin
+        UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
 
     steps:
     - uses: actions/checkout@v4
