@@ -47,4 +47,4 @@ jobs:
 
     - name: Check coverage threshold
       run: |
-        uv run pytest --cov=app --cov-fail-under=70
+        uv run pytest --cov=app --cov-fail-under=75

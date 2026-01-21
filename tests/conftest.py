@@ -84,10 +84,11 @@ async def client(session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
-async def cleanup_engine():
-    """Ensure the engine pool is disposed of to prevent 'Connection._cancel' warnings."""
+async def dispose_engine_after_tests():
+    """Explicitly dispose of the engine pool after the full test suite finishes."""
     yield
     # This runs after all tests are finished
+    # SQLAlchemy 2.0+ requires explicit disposal for clean async exit
     await test_engine.dispose()
 
 
