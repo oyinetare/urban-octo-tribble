@@ -18,32 +18,27 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     uv sync --no-dev --no-install-project
 
+# This creates the uvicorn link in .venv/bin
+COPY . .
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --no-dev
+
 # --- Stage 2: Final Runtime ---
 FROM python:3.13-slim
 
 # Set the working directory inside the container
 WORKDIR /app
 
-# Add a non-root user for security
-RUN groupadd -r appuser && useradd -r -g appuser appuser
+# Install uv in the final stage too (standard practice in 2026)
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Set production environment variables to optimize Python performance in Docker
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PATH="/app/.venv/bin:$PATH"
-
-# Copy ONLY the virtual environment from the builder
+# Copy venv and code
 COPY --from=builder /app/.venv /app/.venv
-
-# Copy your application code
 COPY . .
 
-# Change ownership to the non-root user
-RUN chown -R appuser:appuser /app
-USER appuser
+# Environment setup
+ENV PATH="/app/.venv/bin:$PATH"
+ENV PYTHONUNBUFFERED=1
 
-# Expose the port (FastAPI standard is 8000)
-EXPOSE 8000
-
-# Use uvicorn or the standard FastAPI runner
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+# Use uv run to ensure the environment is activated correctly
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

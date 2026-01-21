@@ -97,9 +97,11 @@ addopts = [
     "--cov=app",
     "--cov-report=term-missing",
     "--cov-report=html",
+    "--cov-report=xml",
 ]
 asyncio_mode = "auto"
-
+# Explicitly set the loop scope if using pytest-asyncio 0.23+
+asyncio_default_test_loop_scope = "function"
 
 [tool.coverage.run]
 source = ["app"]

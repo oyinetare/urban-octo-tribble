@@ -39,6 +39,7 @@ class RedisService:
             self._redis_client = redis.Redis(
                 host=settings.REDIS_HOST,
                 port=settings.REDIS_PORT,
+                password=settings.REDIS_PASSWORD,
                 db=0,
                 decode_responses=True,
                 max_connections=50,  # Connection pool size
@@ -68,7 +69,7 @@ class RedisService:
     async def close(self):
         """Close Redis connection pool."""
         if self._redis_client:
-            await self._redis_client.close()
+            await self._redis_client.aclose()
             print("✅ Redis connection closed")
             self._redis_client = None
 

@@ -4,13 +4,15 @@ services:
     # to keep dev tools available
     build:
       context: .
-      target: builder
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      target: builder # Use builder for dev so uv is available
     volumes:
-      - .:/app  # Mount local code for Hot Reloading
+      - .:/app              # Mount local code
+      - /app/.venv          # PROTECT the venv from being overwritten
     environment:
       - ENVIRONMENT=development
-      - DEBUG=True
+      - PATH=/app/.venv/bin:$PATH # Ensure PATH is set
+    # Change command to use 'uv run' to be safe in 2026
+    command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     ports:
       - "8000:8000"
 

@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     # Redis (for token blacklisting, caching, rate limiting...)
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
+    REDIS_PASSWORD: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env")
 

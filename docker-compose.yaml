@@ -26,6 +26,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    container_name: urban-octo-tribble-redis
     restart: always
     # Always set a password for Redis 7+ in production environments
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-changeme}
@@ -45,6 +46,7 @@ services:
     build:
       context: .
       target: final # If using the multi-stage builder we discussed
+    container_name: urban-octo-tribble-api
     restart: always
     environment:
       # Use internal service names (postgres, redis) for communication
