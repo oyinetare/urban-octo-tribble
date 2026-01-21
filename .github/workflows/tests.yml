@@ -1,0 +1,51 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "sqlite+aiosqlite:///:memory:"
+      SECRET_KEY: "ci-test-secret-key-not-for-production"
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+        version: "latest"
+
+    - name: Set up Python
+      run: uv python install 3.13
+
+    - name: Install dependencies
+      run: uv sync --group dev
+
+    - name: Run tests with coverage (single run)
+      timeout-minutes: 5
+      run: |
+        uv run --no-sync pytest -n auto \
+          --cov=app \
+          --cov-report=xml \
+          --cov-report=term-missing:skip-covered \
+          --cov-fail-under=75 \
+          --durations=10 \
+          -m "not slow"  # Skip slow tests in CI by default
+
+    # Optional: Run slow tests separately with longer timeout
+    # - name: Run slow/performance tests
+    #   timeout-minutes: 3
+    #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    #   run: |
+    #     uv run --no-sync pytest -n auto \
+    #       -m "slow or performance" \
+    #       --durations=10

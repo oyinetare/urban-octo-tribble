@@ -39,4 +39,4 @@ class Token(BaseModel):
 
     access_token: str
     token_type: str = "bearer"
-    scopes: list[str] = Field(default=[], example=["read", "write", "admin"])
+    scopes: list[str] = Field(default=[], json_schema_extra={"example": ["read", "write", "admin"]})

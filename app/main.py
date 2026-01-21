@@ -1,10 +1,14 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
+from app.api.v1 import api_router as v1_router
+from app.api.v1.routes.documents import redirect_router
+
+# from app.api.v2 import api_router as v2_router
 from app.core import get_settings, redis_service
 from app.exceptions import AppException
 from app.middleware import (
@@ -14,7 +18,6 @@ from app.middleware import (
     rate_limit_middleware,
     security_headers_middleware,
 )
-from app.routes import auth, documents, users
 
 settings = get_settings()
 
@@ -54,6 +57,7 @@ app = FastAPI(
     title="urban-octo-tribble API",
     version="1.0.0",
     lifespan=lifespan,
+    # redirect_slashes=False,
     # Add OAuth2 scopes documentation (only in development)
     swagger_ui_init_oauth={
         "clientId": "swagger",
@@ -77,6 +81,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost",
         "http://localhost:8080",
+        "http://localhost:8089",
+        "http://localhost:8000",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -86,7 +92,7 @@ app.add_middleware(
 # 3. Trusted Host
 app.add_middleware(
     TrustedHostMiddleware,  # type: ignore[arg-type]
-    allowed_hosts=["localhost", "127.0.0.1"],
+    allowed_hosts=["localhost", "127.0.0.1", "testserver"],  # Ensure testserver is here
 )
 
 # 4. Security Headers
@@ -117,16 +123,25 @@ async def app_exception_handler(request: Request, exc: AppException):
     )
 
 
-# ROUTES
-api_prefix = "/api/v1"
-app.include_router(users.router, prefix=api_prefix)
-app.include_router(auth.router, prefix=api_prefix)
-app.include_router(documents.router, prefix=api_prefix)
-# Redirect router WITHOUT api prefix (for cleaner URLs like /d/abc123)
-app.include_router(documents.redirect_router)
+# ROUTES Debug
+# Debug endpoint to see all registered routes
+# @app.get("/debug/routes")
+# def list_routes():
+#     """Debug endpoint to see all registered routes."""
+#     routes = []
+#     for route in app.routes:
+#         if hasattr(route, "methods"):
+#             routes.append({
+#                 "path": route.path,
+#                 "name": route.name,
+#                 "methods": list(route.methods)
+#             })
+#     return {"routes": routes}
+
+# --- GLOBAL ENDPOINTS (No Versioning/Minimal Middleware impact) ---
 
 
-@app.get("/")
+@app.get("/", tags=["General"])
 def root():
     return {
         "message": "Welcome to urban-octo-tribble API",
@@ -134,18 +149,43 @@ def root():
     }
 
 
-@app.get("/health")
-def health_check():
-    """
-    Health check endpoint.
+@app.get("/health/live", tags=["Health"])
+async def liveness_check():
+    return {"status": "alive"}
 
-    Returns:
-        dict: Status and service availability
+
+@app.get("/health/ready", tags=["Health"])
+async def readiness_check():
     """
-    return {
-        "status": "ok",
-        "environment": settings.ENVIRONMENT,
-        "services": {
-            "redis": redis_service.is_available,
-        },
-    }
+    Readiness probe: Tells orchestrators if the app is ready to serve traffic.
+    If this fails, traffic is stopped but the container is NOT restarted.
+    """
+    # 1. Check Redis
+    redis_ok = await redis_service.ping()
+
+    # 2. Check Database (Recommended 2026 practice)
+    # Example: if using SQLAlchemy/SQLModel
+    # db_ok = await db_service.check_connection()
+    db_ok = True  # Placeholder for your logic
+
+    if not redis_ok or not db_ok:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={
+                "status": "unready",
+                "services": {
+                    "redis": "ok" if redis_ok else "down",
+                    "database": "ok" if db_ok else "down",
+                },
+                "environment": settings.ENVIRONMENT,
+            },
+        )
+
+    return {"status": "ready", "services": {"redis": "ok", "database": "ok"}}
+
+
+# --- VERSIONED ROUTERS ---
+
+app.include_router(v1_router, prefix="/api/v1")
+# Redirect router WITHOUT api prefix (for cleaner URLs like /d/abc123)
+app.include_router(redirect_router)

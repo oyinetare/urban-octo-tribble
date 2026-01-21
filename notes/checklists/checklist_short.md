@@ -62,14 +62,14 @@
 - [x] `PUT /documents/{id}` - Update document
 - [x] `DELETE /documents/{id}` - Delete document
 - [x] Set up pytest with fixtures
-- [ ] Test each endpoint
-- [ ] Test validation errors
-- [ ] Achieve 70%+ test coverage
+- [x] Test each endpoint
+- [x] Test validation errors
+- [x] Achieve 70%+ test coverage
 
 ### Done When
-- [ ] All endpoints return correct status codes
-- [ ] Can register user and CRUD documents via Swagger UI
-- [ ] Tests pass with 70%+ coverage
+- [x] All endpoints return correct status codes
+- [x] Can register user and CRUD documents via Swagger UI
+- [x] Tests pass with 70%+ coverage
 - [x] Docker Compose runs everything successfully
 - [x] Alembic migrations work (upgrade/downgrade)
 
@@ -98,10 +98,10 @@
 - [x] CORS configuration
 - [x] HTTPS enforcement
 - [x] Security headers middleware
-- [ ] Test login with valid/invalid credentials
-- [ ] Test protected endpoints without token (401)
-- [ ] Test accessing other user's documents (403)
-- [ ] Test expired tokens
+- [x] Test login with valid/invalid credentials
+- [x] Test protected endpoints without token (401)
+- [x] Test accessing other user's documents (403)
+- [x] Test expired tokens
 
 ### Done When
 - [x] Login returns JWT tokens
@@ -161,7 +161,7 @@
 - [x] Configuration for datacenter/worker IDs
 - [x] Replace auto-increment IDs with Snowflake
 - [x] Update database models
-- [ ] Create migration
+- [x] Create migration
 - [x] Update all ID references
 - [ ] Generate 10,000 IDs - all unique
 - [x] IDs are sortable by time
@@ -196,9 +196,9 @@
 - [x] `POST /share{document_id}` - Create short URL
 - [x] `GET /{short_code}` - Redirect to document
 - [x] `GET /documents/{short_code}/stats` - View analytics
-- [ ] Test Base62 encoding/decoding
-- [ ] Test shortening and redirect
-- [ ] Test collision handling
+- [x] Test Base62 encoding/decoding
+- [x] Test shortening and redirect
+- [x] Test collision handling
 - [ ] Test analytics tracking
 
 ### Done When
@@ -253,6 +253,7 @@
 ---
 
 ## Phase 1.7: Idempotency, URI Versioning, Pagination, Filtering & Sorting
+
 ### Tasks
 - [x] Create schemas for pagination and document filtering
 - [x] Create pagination_params Dependency
@@ -275,21 +276,21 @@
 **What:** Comprehensive tests and production configuration
 
 ### Tasks
-- [ ] Unit tests for all routes
-- [ ] Integration tests for auth flow
-- [ ] Test database transactions
+- [x] Unit tests for all routes
+- [x] Integration tests for auth flow
+- [x] Test database transactions
 - [ ] Test error cases (404, 422, 500, 429)
-- [ ] Test rate limiting edge cases
+- [x] Test rate limiting edge cases
 - [ ] Mock external services
-- [ ] Achieve 80%+ coverage
+- [x] Achieve 80%+ coverage
 - [ ] Structured logging (JSON format)
 - [ ] Request/response logging middleware
 - [ ] Performance metrics (request duration)
 - [ ] Error tracking
-- [ ] Production Dockerfile (multi-stage build)
-- [ ] Docker Compose for full stack
+- [x] Production Dockerfile (multi-stage build)
+- [x] Docker Compose for full stack
 - [ ] Environment variable management
-- [ ] Health check endpoint
+- [x] Health check endpoint
 - [ ] Graceful shutdown
 - [x] API documentation (auto-generated Swagger)
 - [ ] README with setup instructions

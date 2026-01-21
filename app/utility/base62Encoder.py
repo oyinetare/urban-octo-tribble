@@ -29,7 +29,5 @@ class Base62Encoder:
         return num
 
 
-# Generate short code
-def generate_short_code(document_id: int) -> str:
-    """Generate a 7-character short code from document ID."""
-    return Base62Encoder.encode(document_id)
+# Initialize once
+base62_encoder = Base62Encoder()

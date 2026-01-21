@@ -1,0 +1,27 @@
+services:
+  api:
+    # Use the 'builder' stage if your Dockerfile is multi-stage
+    # to keep dev tools available
+    build:
+      context: .
+      target: builder # Use builder for dev so uv is available
+    volumes:
+      - .:/app              # Mount local code
+      - /app/.venv          # PROTECT the venv from being overwritten
+    environment:
+      - ENVIRONMENT=development
+      - PATH=/app/.venv/bin:$PATH # Ensure PATH is set
+    # Change command to use 'uv run' to be safe in 2026
+    command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+
+  postgres:
+    # Expose ports in dev so you can use GUI tools like DBeaver
+    ports:
+      - "5432:5432"
+
+  redis:
+    # Expose ports in dev so you can use Redis Insight
+    ports:
+      - "6379:6379"

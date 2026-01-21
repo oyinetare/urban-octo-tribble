@@ -29,10 +29,23 @@ type-check:  ## Type check with ty
 	uv run ty check app/
 
 test:  ## Run tests
-	uv run pytest
+	uv run pytest -v
 
 test-cov:  ## Run tests with coverage report
-	uv run pytest --cov=app --cov-report=html --cov-report=term
+	uv run pytest --cov=app --cov-report=html --cov-report=term-missing
+
+test-file: # Run specific test file
+	pytest tests/$(FILE) -v
+
+
+test-parallel: # Run tests in parallel
+	pytest -n auto
+
+test-failed: # Run only failed tests
+	pytest --lf
+
+load-test: # Load testing
+	locust -f tests/locustfile.py --host=http://localhost:8000
 
 clean:  ## Clean up cache and build files
 	find . -type d -name "__pycache__" -exec rm -rf {} +
@@ -42,6 +55,7 @@ clean:  ## Clean up cache and build files
 	find . -type d -name ".mypy_cache" -exec rm -rf {} +
 	rm -rf htmlcov/
 	rm -rf .coverage
+	rm -rf .coverage*
 
 check-docker-up:
 	@docker info >/dev/null 2>&1 || (echo "Error: Docker daemon is not running." && exit 1)
@@ -81,6 +95,9 @@ rollback:
 db-reset:
 	uv run alembic downgrade base
 	uv run alembic upgrade head
+
+docker-up-hot-reload: check-docker-up ## Start Docker services
+	docker compose up --build
 
 docker-up: check-docker-up ## Start Docker services
 	docker compose up -d

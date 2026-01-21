@@ -17,9 +17,9 @@ from app.exceptions import (
     UserNotFoundException,
 )
 from app.models import User
-from app.schemas import Token, UserCreate, UserResponse
+from app.schemas.v1 import Token, UserCreate, UserResponse
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter()
 settings = get_settings()
 
 

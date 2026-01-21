@@ -1,45 +1,74 @@
+# Note: 'version' line is omitted as it is obsolete in the Compose Specification
+name: urban-octo-tribble-stack
+
 services:
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
     container_name: urban-octo-tribble-postgres
+    restart: always
+    shm_size: 128mb  # Recommended for Postgres performance
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: urban-octo-tribble
-    ports:
-      - "5432:5432"
+    # ports: # Do NOT expose in production unless needed for external debugging
+    #   - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
       timeout: 5s
       retries: 5
     networks:
-      - urban-octo-tribble-network
+      - app_network
 
-  # Redis (for token blacklisting and caching)
   redis:
     image: redis:7-alpine
     container_name: urban-octo-tribble-redis
-    command: redis-server --appendonly yes
-    ports:
-      - "6379:6379"
+    restart: always
+    # Always set a password for Redis 7+ in production environments
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-changeme}
+    # ports:
+    #   - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
+      interval: 5s
+      timeout: 3s
       retries: 5
     networks:
-      - urban-octo-tribble-network
+      - app_network
+
+  api:
+    build:
+      context: .
+      target: final # If using the multi-stage builder we discussed
+    container_name: urban-octo-tribble-api
+    restart: always
+    environment:
+      # Use internal service names (postgres, redis) for communication
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/urban-octo-tribble
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-changeme}
+      - ENVIRONMENT=production
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app_network
 
 volumes:
   postgres_data:
   redis_data:
 
 networks:
-  urban-octo-tribble-network:
+  app_network:
     driver: bridge

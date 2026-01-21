@@ -1,11 +1,13 @@
 # urban-octo-tribble
 
+[![Tests](https://github.com/oyinetare/urban-octo-tribble/actions/workflows/tests.yml/badge.svg)](https://github.com/oyinetare/urban-octo-tribble/actions/workflows/tests.yml)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/fastapi-109989?logo=FASTAPI&logoColor=white)](https://fastapi.tiangolo.com)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![ty](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ty/main/assets/badge/v0.json)](https://github.com/astral-sh/ty)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+<!-- [![codecov](https://codecov.io)](https://codecov.io) -->
 
 ## 📋 Table of Contents
 
@@ -143,7 +145,7 @@ curl -X POST 'http://localhost:8000/api/v1/auth/logout' \
 ### Docments
 ```bash
 # 1. Create a document
-curl -X POST http://localhost:8000/api/v1/documents/ \
+curl -X POST http://localhost:8000/api/v1/documents \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"title": "Test Doc", "description": "Test"}' | jq
@@ -154,7 +156,7 @@ curl -X GET http://localhost:8000/api/v1/documents/{docuemnt_id} \
   -H "Content-Type: application/json" | jq
 
 # 3. Get all documents
-curl -X GET http://localhost:8000/api/v1/documents/ \
+curl -X GET http://localhost:8000/api/v1/documents \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" | jq
 
@@ -177,7 +179,7 @@ curl -X POST http://localhost:8000/api/v1/documents/share/{docuemnt_id} \
 
 ```bash
 # Test Security headers present in responses
-curl -X GET -I http://localhost:8000/
+curl -X GET -I http://localhost:8000/d/2oLIZi1bnwI
 curl -v http://localhost:8000/
 ```
 ___
