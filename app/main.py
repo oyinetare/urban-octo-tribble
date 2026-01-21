@@ -15,6 +15,7 @@ from app.middleware import (
     IdempotencyMiddleware,
     VersioningMiddleware,
     https_redirect_middleware,
+    log_requests_middleware,
     rate_limit_middleware,
     security_headers_middleware,
 )
@@ -53,8 +54,9 @@ async def lifespan(app: FastAPI):
         bucket_name=settings.MINIO_DOCUMENTS_BUCKET_NAME,
         use_ssl=settings.MINIO_USE_SSL,
     )
-    app.state.storage = storage
+    await storage._ensure_bucket_exists()
 
+    app.state.storage = storage
     await init_db()
     await redis_service.initialize()
 
@@ -115,7 +117,10 @@ app.add_middleware(VersioningMiddleware)  # type: ignore[arg-type]
 # 6. Idempotency (for POST requests)
 app.add_middleware(IdempotencyMiddleware, ttl_seconds=86400)  # type: ignore[arg-type]
 
-# 7. Rate Limiting
+# 7. Logging
+app.middleware("http")(log_requests_middleware)
+
+# 8. Rate Limiting
 app.middleware("http")(rate_limit_middleware)
 
 
