@@ -114,3 +114,7 @@ exclude_lines = [
     "if __name__ == .__main__.:",
     "if TYPE_CHECKING:",
 ]
+
+[tool.pytest_env]
+DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+SECRET_KEY = "ci-test-secret-key"
