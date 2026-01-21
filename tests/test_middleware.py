@@ -32,7 +32,7 @@ class TestMiddleware:
     async def test_https_redirect_skipped_in_dev(self, client: AsyncClient):
         """Test HTTPS redirect is skipped in development."""
         # In test environment, HTTPS redirect should be skipped
-        response = await client.get("/health")
+        response = await client.get("/health/live")
         assert response.status_code == 200
 
     @pytest.mark.asyncio

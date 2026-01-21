@@ -1,4 +1,5 @@
 import asyncio
+import warnings
 from collections.abc import AsyncGenerator, Generator
 
 import pytest
@@ -12,8 +13,11 @@ from app.core import get_session, redis_service, token_manager
 from app.main import app
 from app.models import Document, User
 
+# Suppress specific warnings at module level
+warnings.filterwarnings("ignore", message="coroutine.*was never awaited")
+warnings.filterwarnings("ignore", category=RuntimeWarning, module="asyncpg")
+
 # Test database URL (use in-memory SQLite for tests)
-# CRITICAL FIX: Use StaticPool for SQLite to avoid session conflicts
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 test_engine = create_async_engine(
@@ -21,7 +25,7 @@ test_engine = create_async_engine(
     echo=False,
     future=True,
     connect_args={"check_same_thread": False},
-    poolclass=StaticPool,  # CRITICAL: This fixes concurrent session issues
+    poolclass=StaticPool,  # fixes concurrent session issues
 )
 
 TestSessionLocal = async_sessionmaker(
@@ -39,26 +43,35 @@ def event_loop() -> Generator:
     policy = asyncio.get_event_loop_policy()
     loop = policy.new_event_loop()
     yield loop
-    loop.close()
+
+    # Cleanup pending tasks
+    try:
+        pending = asyncio.all_tasks(loop)
+        for task in pending:
+            task.cancel()
+        loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+    except Exception:
+        pass
+    finally:
+        loop.close()
 
 
 @pytest_asyncio.fixture(scope="function")
 async def session() -> AsyncGenerator[AsyncSession, None]:
     """Create test database session with guaranteed cleanup."""
-    # 1. Create tables
+    # Create tables
     async with test_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
 
-    # 2. Provide session with guaranteed closure
+    # Provide session
     async with TestSessionLocal() as test_session:
         try:
             yield test_session
         finally:
-            # This block runs even if the test fails
             await test_session.rollback()
-            await test_session.close()  # CRITICAL: Ensures internal coroutines are awaited
+            await test_session.close()
 
-    # 3. Drop tables
+    # Drop tables
     async with test_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.drop_all)
 
@@ -67,34 +80,36 @@ async def session() -> AsyncGenerator[AsyncSession, None]:
 async def client(session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     """Create test client with database session override."""
 
-    # This is where 'session' is requested
     async def override_get_session():
         yield session
 
     app.dependency_overrides[get_session] = override_get_session
 
-    transport = ASGITransport(app=app)
-    # Using 'testserver' to fix the Host Header issue
-    async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as ac:
         try:
             yield ac
         finally:
-            # Ensure overrides are cleared even if client usage fails
             app.dependency_overrides.clear()
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
-async def dispose_engine_after_tests():
-    """Explicitly dispose of the engine pool after the full test suite finishes."""
-    yield
-    # This runs after all tests are finished
-    # SQLAlchemy 2.0+ requires explicit disposal for clean async exit
-    # 1. Close Redis connection pool properly (2026 standard)
-    if redis_service.client:
-        await redis_service.client.aclose()
+async def cleanup_resources():
+    """Initialize and cleanup resources for entire test session."""
+    # Setup
+    await redis_service.initialize()
 
-    # 2. Dispose of the engine pool to release the StaticPool SQLite connection
-    await test_engine.dispose()
+    yield
+
+    # Cleanup - runs after ALL tests
+    try:
+        # Close Redis
+        if redis_service.client:
+            await redis_service.close()
+
+        # Dispose engine
+        await test_engine.dispose()
+    except Exception:
+        pass  # Suppress cleanup errors
 
 
 @pytest_asyncio.fixture

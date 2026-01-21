@@ -204,7 +204,8 @@ class TestRateLimiterPerformance:
 
         async def make_request():
             try:
-                response = await client.get("/health")  # Unprotected endpoint
+                # Use /health/live to test middleware overhead only
+                response = await client.get("/health/live")
                 if response.status_code == 200:
                     results["success"] += 1
                 elif response.status_code == 429:
