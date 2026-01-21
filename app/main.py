@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
@@ -123,7 +123,7 @@ async def app_exception_handler(request: Request, exc: AppException):
     )
 
 
-# ROUTES
+# ROUTES Debug
 # Debug endpoint to see all registered routes
 # @app.get("/debug/routes")
 # def list_routes():
@@ -138,12 +138,10 @@ async def app_exception_handler(request: Request, exc: AppException):
 #             })
 #     return {"routes": routes}
 
-app.include_router(v1_router, prefix="/api/v1")
-# Redirect router WITHOUT api prefix (for cleaner URLs like /d/abc123)
-app.include_router(redirect_router)
+# --- GLOBAL ENDPOINTS (No Versioning/Minimal Middleware impact) ---
 
 
-@app.get("/")
+@app.get("/", tags=["General"])
 def root():
     return {
         "message": "Welcome to urban-octo-tribble API",
@@ -151,18 +149,43 @@ def root():
     }
 
 
-@app.get("/health")
-def health_check():
-    """
-    Health check endpoint.
+@app.get("/health/live", tags=["Health"])
+async def liveness_check():
+    return {"status": "alive"}
 
-    Returns:
-        dict: Status and service availability
+
+@app.get("/health/ready", tags=["Health"])
+async def readiness_check():
     """
-    return {
-        "status": "ok",
-        "environment": settings.ENVIRONMENT,
-        "services": {
-            "redis": redis_service.is_available,
-        },
-    }
+    Readiness probe: Tells orchestrators if the app is ready to serve traffic.
+    If this fails, traffic is stopped but the container is NOT restarted.
+    """
+    # 1. Check Redis
+    redis_ok = await redis_service.ping()
+
+    # 2. Check Database (Recommended 2026 practice)
+    # Example: if using SQLAlchemy/SQLModel
+    # db_ok = await db_service.check_connection()
+    db_ok = True  # Placeholder for your logic
+
+    if not redis_ok or not db_ok:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={
+                "status": "unready",
+                "services": {
+                    "redis": "ok" if redis_ok else "down",
+                    "database": "ok" if db_ok else "down",
+                },
+                "environment": settings.ENVIRONMENT,
+            },
+        )
+
+    return {"status": "ready", "services": {"redis": "ok", "database": "ok"}}
+
+
+# --- VERSIONED ROUTERS ---
+
+app.include_router(v1_router, prefix="/api/v1")
+# Redirect router WITHOUT api prefix (for cleaner URLs like /d/abc123)
+app.include_router(redirect_router)

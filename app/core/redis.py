@@ -83,6 +83,16 @@ class RedisService:
         """Check if Redis is available."""
         return self._redis_client is not None
 
+    async def ping(self) -> bool:
+        """Actually pings Redis to verify the live connection."""
+        if not self._redis_client:
+            return False
+        try:
+            # Use a short timeout for health checks to avoid hanging the endpoint
+            return await cast(Awaitable, self._redis_client.ping())
+        except Exception:
+            return False
+
     # === Token Blacklist Operations ===
 
     async def blacklist_token(self, token: str, expires_in: int) -> bool:
