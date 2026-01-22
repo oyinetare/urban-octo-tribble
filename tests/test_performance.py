@@ -18,7 +18,7 @@ class TestPerformance:
 
         async def make_request():
             try:
-                response = await client.get("/api/v1/users/me", headers=auth_headers)
+                response = await client.get("/api/users/me", headers=auth_headers)
                 if response.status_code == 200:
                     results["success"] += 1
                 elif response.status_code == 429:
@@ -75,7 +75,7 @@ class TestPerformance:
 
         # Time the query
         start = time.time()
-        response = await client.get("/api/v1/documents?page=1&page_size=50", headers=auth_headers)
+        response = await client.get("/api/documents?page=1&page_size=50", headers=auth_headers)
         duration = time.time() - start
 
         assert response.status_code == 200

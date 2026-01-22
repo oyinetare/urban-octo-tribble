@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, UploadFile, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,7 +8,7 @@ from app.core import SortOrder, get_session
 from app.dependencies import get_current_user, pagination_params, verify_document_ownership
 from app.exceptions import AppException
 from app.models import Document, ShortURL, User
-from app.schemas.v1 import (
+from app.schemas import (
     DocumentCreate,
     DocumentFilterParams,
     DocumentResponse,
@@ -18,6 +18,7 @@ from app.schemas.v1 import (
     ShortenResponse,
     StatsResponse,
 )
+from app.services import validator
 from app.utility import base62_encoder, id_generator
 
 router = APIRouter()
@@ -46,6 +47,14 @@ async def create_document(
     await session.refresh(document)
 
     return document
+
+
+@router.post("/upload")
+async def upload_document(file: UploadFile):
+    # Validate
+    valid, message = await validator.validate(file)
+    if not valid:
+        raise AppException(message)
 
 
 @router.get("/{document_id}", response_model=DocumentResponse, status_code=status.HTTP_200_OK)
@@ -187,7 +196,7 @@ async def create_short_url(
             short_code=existing_url.short_code,
             document_id=existing_url.document_id,
             clicks=existing_url.clicks,
-            original_url=f"/api/v1/documents/{document.id}",
+            original_url=f"/api/documents/{document.id}",
             short_url=f"/d/{existing_url.short_code}",
         )
 
@@ -206,7 +215,7 @@ async def create_short_url(
         short_code=short_url.short_code,
         document_id=short_url.document_id,
         clicks=short_url.clicks,
-        original_url=f"/api/v1/documents/{document.id}",
+        original_url=f"/api/documents/{document.id}",
         short_url=f"/d/{short_url.short_code}",
     )
 

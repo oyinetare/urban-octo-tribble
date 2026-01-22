@@ -10,7 +10,7 @@ class TestAuthenticationExtended:
         """Test refresh token functionality."""
         # Login to get refresh token
         login_response = await client.post(
-            "/api/v1/auth/login", data={"username": test_user.username, "password": "testpassword"}
+            "/api/auth/login", data={"username": test_user.username, "password": "testpassword"}
         )
         assert login_response.status_code == 200
 
@@ -19,7 +19,7 @@ class TestAuthenticationExtended:
         assert "refresh_token" in cookies
 
         # Use refresh token
-        refresh_response = await client.post("/api/v1/auth/refresh", cookies=cookies)
+        refresh_response = await client.post("/api/auth/refresh", cookies=cookies)
         assert refresh_response.status_code == 200
         data = refresh_response.json()
         assert "access_token" in data
@@ -27,7 +27,7 @@ class TestAuthenticationExtended:
     @pytest.mark.asyncio
     async def test_refresh_without_cookie(self, client: AsyncClient):
         """Test refresh without refresh token cookie."""
-        response = await client.post("/api/v1/auth/refresh")
+        response = await client.post("/api/auth/refresh")
         assert response.status_code == 401
 
     @pytest.mark.asyncio
@@ -35,12 +35,12 @@ class TestAuthenticationExtended:
         """Test logout blacklists tokens."""
         # Login first
         login_response = await client.post(
-            "/api/v1/auth/login", data={"username": "testuser", "password": "testpassword"}
+            "/api/auth/login", data={"username": "testuser", "password": "testpassword"}
         )
 
         # Logout
         logout_response = await client.post(
-            "/api/v1/auth/logout", headers=auth_headers, cookies=login_response.cookies
+            "/api/auth/logout", headers=auth_headers, cookies=login_response.cookies
         )
         assert logout_response.status_code == 200
 
@@ -54,6 +54,6 @@ class TestAuthenticationExtended:
 
         # Try to login
         response = await client.post(
-            "/api/v1/auth/login", data={"username": test_user.username, "password": "testpassword"}
+            "/api/auth/login", data={"username": test_user.username, "password": "testpassword"}
         )
         assert response.status_code == 400

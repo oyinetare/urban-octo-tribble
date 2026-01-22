@@ -9,7 +9,7 @@ class TestURLShorteningComprehensive:
     async def test_create_short_url(self, client: AsyncClient, auth_headers, test_document):
         """Test creating short URL."""
         response = await client.post(
-            f"/api/v1/documents/share/{test_document.id}", headers=auth_headers
+            f"/api/documents/share/{test_document.id}", headers=auth_headers
         )
         assert response.status_code == 201
         data = response.json()
@@ -39,7 +39,7 @@ class TestURLShorteningComprehensive:
         )
         headers = {"Authorization": f"Bearer {token}"}
 
-        response = await client.post(f"/api/v1/documents/share/{test_document.id}", headers=headers)
+        response = await client.post(f"/api/documents/share/{test_document.id}", headers=headers)
         assert response.status_code == 403
 
     @pytest.mark.asyncio
@@ -47,7 +47,7 @@ class TestURLShorteningComprehensive:
         """Test redirecting via short URL."""
         # Create short URL
         create_response = await client.post(
-            f"/api/v1/documents/share/{test_document.id}", headers=auth_headers
+            f"/api/documents/share/{test_document.id}", headers=auth_headers
         )
         short_code = create_response.json()["short_code"]
 
@@ -67,7 +67,7 @@ class TestURLShorteningComprehensive:
         """Test click tracking."""
         # Create short URL
         create_response = await client.post(
-            f"/api/v1/documents/share/{test_document.id}", headers=auth_headers
+            f"/api/documents/share/{test_document.id}", headers=auth_headers
         )
         short_code = create_response.json()["short_code"]
 
@@ -77,7 +77,7 @@ class TestURLShorteningComprehensive:
 
         # Check stats
         stats_response = await client.get(
-            f"/api/v1/documents/{short_code}/stats", headers=auth_headers
+            f"/api/documents/{short_code}/stats", headers=auth_headers
         )
         assert stats_response.status_code == 200
         data = stats_response.json()
@@ -86,5 +86,5 @@ class TestURLShorteningComprehensive:
     @pytest.mark.asyncio
     async def test_get_stats_nonexistent(self, client: AsyncClient, auth_headers):
         """Test getting stats for non-existent short URL."""
-        response = await client.get("/api/v1/documents/nonexistent/stats", headers=auth_headers)
+        response = await client.get("/api/documents/nonexistent/stats", headers=auth_headers)
         assert response.status_code == 404

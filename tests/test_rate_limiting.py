@@ -14,7 +14,7 @@ class TestRateLimiting:
         # Make requests up to the limit
         responses = []
         for i in range(15):  # Assuming limit is 10/minute for free tier
-            response = await client.get("/api/v1/users/me", headers=auth_headers)
+            response = await client.get("/api/users/me", headers=auth_headers)
             responses.append(response)
             if i < 10:
                 assert response.status_code == 200
@@ -27,7 +27,7 @@ class TestRateLimiting:
     @pytest.mark.asyncio
     async def test_rate_limit_headers(self, client: AsyncClient, auth_headers):
         """Test rate limit headers are present."""
-        response = await client.get("/api/v1/users/me", headers=auth_headers)
+        response = await client.get("/api/users/me", headers=auth_headers)
 
         # Check for rate limit headers (if Redis is available)
         if response.status_code == 200 and "X-RateLimit-Remaining" in response.headers:
@@ -40,7 +40,7 @@ class TestRateLimiting:
         """Test 429 response format when rate limited."""
         # Exhaust rate limit
         for _ in range(20):  # Well over the limit
-            response = await client.get("/api/v1/users/me", headers=auth_headers)
+            response = await client.get("/api/users/me", headers=auth_headers)
 
         # Last response should be rate limited (if Redis available)
         if response.status_code == 429:
@@ -53,13 +53,13 @@ class TestRateLimiting:
         """Test rate limit resets over time."""
         # Make several requests
         for _ in range(5):
-            await client.get("/api/v1/users/me", headers=auth_headers)
+            await client.get("/api/users/me", headers=auth_headers)
 
         # Wait for token refill (depends on refill rate)
         await asyncio.sleep(6)  # 6 seconds should refill 1 token at 10/minute
 
         # Should be able to make another request
-        _response = await client.get("/api/v1/users/me", headers=auth_headers)
+        _response = await client.get("/api/users/me", headers=auth_headers)
         # May succeed if Redis is available and tokens refilled
 
     @pytest.mark.asyncio
@@ -91,10 +91,10 @@ class TestRateLimiting:
 
         # Exhaust user1's limit
         for _ in range(15):
-            await client.get("/api/v1/users/me", headers=headers1)
+            await client.get("/api/users/me", headers=headers1)
 
         # User2 should still be able to make requests
-        _response = await client.get("/api/v1/users/me", headers=headers2)
+        _response = await client.get("/api/users/me", headers=headers2)
         # Should succeed as user2 has independent limit
 
     @pytest.mark.asyncio
@@ -102,7 +102,7 @@ class TestRateLimiting:
         """Test rate limiter with concurrent requests."""
 
         async def make_request():
-            return await client.get("/api/v1/users/me", headers=auth_headers)
+            return await client.get("/api/users/me", headers=auth_headers)
 
         # Send 20 concurrent requests
         tasks = [make_request() for _ in range(20)]
@@ -121,7 +121,7 @@ class TestRateLimiting:
 
         async def make_request():
             try:
-                return await client.get("/api/v1/users/me", headers=auth_headers)
+                return await client.get("/api/users/me", headers=auth_headers)
             except Exception:
                 return None
 

@@ -51,3 +51,14 @@ class DocumentFilterParams:
         self.search = search
         self.sort_by = sort_by
         self.sort_order = sort_order
+
+
+class DocumentUploadResponse(BaseModel):
+    """Schema for response after successful file/document upload."""
+
+    id: int
+    title: str
+    filename: str
+    file_size: int
+    content_type: str
+    storage_key: str

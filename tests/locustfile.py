@@ -27,7 +27,7 @@ class APIUser(HttpUser):
 
         # Register
         self.client.post(
-            "/api/v1/auth/register",
+            "/api/auth/register",
             json={
                 "email": f"{self.username}@example.com",
                 "username": self.username,
@@ -37,7 +37,7 @@ class APIUser(HttpUser):
 
         # Login and get token
         response = self.client.post(
-            "/api/v1/auth/login", data={"username": self.username, "password": self.password}
+            "/api/auth/login", data={"username": self.username, "password": self.password}
         )
 
         if response.status_code == 200:
@@ -49,18 +49,18 @@ class APIUser(HttpUser):
     @task(3)
     def get_user_info(self):
         """Get current user information."""
-        self.client.get("/api/v1/users/me", headers=self.headers)
+        self.client.get("/api/users/me", headers=self.headers)
 
     @task(5)
     def list_documents(self):
         """List user's documents."""
-        self.client.get("/api/v1/documents/", headers=self.headers)
+        self.client.get("/api/documents/", headers=self.headers)
 
     @task(2)
     def create_document(self):
         """Create a new document."""
         self.client.post(
-            "/api/v1/documents/",
+            "/api/documents/",
             headers=self.headers,
             json={
                 "title": f"Load Test Document {random.randint(1, 1000)}",
@@ -84,7 +84,7 @@ class RateLimitTest(HttpUser):
         """Setup user."""
         # Use a single user to test rate limiting
         response = self.client.post(
-            "/api/v1/auth/login", data={"username": "testuser", "password": "testpassword"}
+            "/api/auth/login", data={"username": "testuser", "password": "testpassword"}
         )
         if response.status_code == 200:
             self.token = response.json()["access_token"]
@@ -93,7 +93,7 @@ class RateLimitTest(HttpUser):
     @task
     def rapid_requests(self):
         """Make rapid requests to trigger rate limiting."""
-        response = self.client.get("/api/v1/users/me", headers=self.headers)
+        response = self.client.get("/api/users/me", headers=self.headers)
         if response.status_code == 429:
             # Rate limited - this is expected
             pass

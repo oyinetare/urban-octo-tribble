@@ -16,11 +16,11 @@ from app.exceptions import (
     UserNotFoundException,
 )
 from app.models import Document, User
-from app.schemas.v1 import PaginationParams
+from app.schemas import PaginationParams
 from app.services import MinIOAdapter
 
 oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl="/api/v1/auth/login",
+    tokenUrl="/api/auth/login",
     scopes={
         "read": "Read access to resources",
         "write": "Write access to resources",

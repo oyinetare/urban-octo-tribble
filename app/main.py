@@ -5,20 +5,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.v1 import api_router as v1_router
-from app.api.v1.routes.documents import redirect_router
-
-# from app.api.v2 import api_router as v2_router
 from app.core import get_settings, redis_service
 from app.exceptions import AppException
 from app.middleware import (
     IdempotencyMiddleware,
-    VersioningMiddleware,
+    # VersioningMiddleware,
     https_redirect_middleware,
     log_requests_middleware,
     rate_limit_middleware,
     security_headers_middleware,
 )
+from app.routes import auth, documents, users
 from app.services import MinIOAdapter
 
 settings = get_settings()
@@ -112,7 +109,7 @@ app.add_middleware(
 app.middleware("http")(security_headers_middleware)
 
 # 5. Versioning Headers
-app.add_middleware(VersioningMiddleware)  # type: ignore[arg-type]
+# app.add_middleware(VersioningMiddleware)
 
 # 6. Idempotency (for POST requests)
 app.add_middleware(IdempotencyMiddleware, ttl_seconds=86400)  # type: ignore[arg-type]
@@ -200,8 +197,11 @@ async def readiness_check():
     return {"status": "ready", "services": {"redis": "ok", "database": "ok"}}
 
 
-# --- VERSIONED ROUTERS ---
+# --- ROUTERS ---
 
-app.include_router(v1_router, prefix="/api/v1")
+
+app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
+app.include_router(users.router, prefix="/api/users", tags=["Users"])
+app.include_router(documents.router, prefix="/api/documents", tags=["Documents"])
 # Redirect router WITHOUT api prefix (for cleaner URLs like /d/abc123)
-app.include_router(redirect_router)
+app.include_router(documents.redirect_router)
