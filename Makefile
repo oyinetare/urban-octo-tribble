@@ -67,7 +67,7 @@ run-fresh: check-docker-up  ## Run the development server with docker
 # 	uv run uvicorn app.main:app --reload
 	docker compose down -v
 	docker compose up -d
-	uv run fastapi dev
+# 	uv run fastapi dev
 
 run: check-docker-up  ## Run the development server
 # 	uv run uvicorn app.main:app --reload
