@@ -19,7 +19,7 @@ class TestMiddlewareComprehensive:
     # @pytest.mark.asyncio
     # async def test_versioning_headers(self, client: AsyncClient, auth_headers):
     #     """Test versioning headers on v1 endpoints."""
-    #     response = await client.get("/api/users/me", headers=auth_headers)
+    #     response = await client.get("/api/v1/users/me", headers=auth_headers)
 
     #     # V1 endpoints should have deprecation headers
     #     assert "Deprecation" in response.headers
@@ -28,7 +28,7 @@ class TestMiddlewareComprehensive:
     async def test_cors_headers(self, client: AsyncClient):
         """Test CORS headers."""
         _response = await client.options(
-            "/api/users/me", headers={"Origin": "http://localhost:8080"}
+            "/api/v1/users/me", headers={"Origin": "http://localhost:8080"}
         )
         # CORS middleware should handle OPTIONS requests
 
@@ -36,10 +36,14 @@ class TestMiddlewareComprehensive:
     async def test_idempotency_without_key(self, client: AsyncClient, auth_headers):
         """Test POST without idempotency key works normally."""
         response1 = await client.post(
-            "/api/documents", headers=auth_headers, json={"title": "Test", "content": "Test"}
+            "/api/v1/documents",
+            headers=auth_headers,
+            json={"title": "Test", "description": "Test description"},
         )
         response2 = await client.post(
-            "/api/documents", headers=auth_headers, json={"title": "Test", "content": "Test"}
+            "/api/v1/documents",
+            headers=auth_headers,
+            json={"title": "Test", "description": "Test description"},
         )
 
         # Both should succeed

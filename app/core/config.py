@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     MINIO_ROOT_PASSWORD: str
 
     # File Upload
-    MAX_UPLOAD_SIZE: int = 10485760  # 10MB
+    MAX_UPLOAD_SIZE: int = 10485760
     ALLOWED_EXTENSIONS: str = "pdf,txt,doc,docx,md,xlsx,pptx"
 
     model_config = SettingsConfigDict(env_file=".env")

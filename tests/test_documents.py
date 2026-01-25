@@ -13,12 +13,11 @@ class TestDocuments:
     async def test_create_document(self, client: AsyncClient, auth_headers):
         """Test creating a document."""
         response = await client.post(
-            "/api/documents",
+            "/api/v1/documents",
             headers=auth_headers,
             json={
                 "title": "New Document",
                 "description": "Test Description",
-                "content": "Test Content",
             },
         )
         assert response.status_code == 201
@@ -29,13 +28,15 @@ class TestDocuments:
     @pytest.mark.asyncio
     async def test_create_document_without_auth(self, client: AsyncClient):
         """Test creating document without authentication fails."""
-        response = await client.post("/api/documents", json={"title": "Test", "content": "Test"})
+        response = await client.post(
+            "/api/v1/documents", json={"title": "Test", "description": "Test"}
+        )
         assert response.status_code == 401
 
     @pytest.mark.asyncio
     async def test_get_document(self, client: AsyncClient, auth_headers, test_document):
         """Test getting a document."""
-        response = await client.get(f"/api/documents/{test_document.id}", headers=auth_headers)
+        response = await client.get(f"/api/v1/documents/{test_document.id}", headers=auth_headers)
         assert response.status_code == 200
         data = response.json()
         assert data["id"] == test_document.id
@@ -44,7 +45,7 @@ class TestDocuments:
     @pytest.mark.asyncio
     async def test_get_nonexistent_document(self, client: AsyncClient, auth_headers):
         """Test getting non-existent document returns 404."""
-        response = await client.get("/api/documents/99999", headers=auth_headers)
+        response = await client.get("/api/v1/documents/99999", headers=auth_headers)
         assert response.status_code == 404
 
     @pytest.mark.asyncio
@@ -66,14 +67,14 @@ class TestDocuments:
         )
         headers = {"Authorization": f"Bearer {token}"}
 
-        response = await client.get(f"/api/documents/{test_document.id}", headers=headers)
+        response = await client.get(f"/api/v1/documents/{test_document.id}", headers=headers)
         assert response.status_code == 403
 
     @pytest.mark.asyncio
     async def test_update_document(self, client: AsyncClient, auth_headers, test_document):
         """Test updating a document."""
         response = await client.put(
-            f"/api/documents/{test_document.id}",
+            f"/api/v1/documents/{test_document.id}",
             headers=auth_headers,
             json={"title": "Updated Title"},
         )
@@ -84,11 +85,13 @@ class TestDocuments:
     @pytest.mark.asyncio
     async def test_delete_document(self, client: AsyncClient, auth_headers, test_document):
         """Test deleting a document."""
-        response = await client.delete(f"/api/documents/{test_document.id}", headers=auth_headers)
+        response = await client.delete(
+            f"/api/v1/documents/{test_document.id}", headers=auth_headers
+        )
         assert response.status_code == 204
 
         # Verify document is deleted
-        response = await client.get(f"/api/documents/{test_document.id}", headers=auth_headers)
+        response = await client.get(f"/api/v1/documents/{test_document.id}", headers=auth_headers)
         assert response.status_code == 404
 
     @pytest.mark.asyncio
@@ -100,7 +103,7 @@ class TestDocuments:
         for i in range(25):
             doc = Document(
                 title=f"Document {i:02d}",  # Using padding for consistent sorting
-                content=f"Content {i}",
+                description=f"Description {i}",
                 owner_id=test_user.id,
             )
             session.add(doc)
@@ -110,7 +113,7 @@ class TestDocuments:
         await session.execute(select(func.count(Document.id)))
 
         # Test first page
-        response = await client.get("/api/documents?page=1&page_size=10", headers=auth_headers)
+        response = await client.get("/api/v1/documents?page=1&page_size=10", headers=auth_headers)
 
         assert response.status_code == 200
         data = response.json()
@@ -125,12 +128,12 @@ class TestDocuments:
         self, client: AsyncClient, auth_headers, session, test_user
     ):
         """Test filtering documents by search term."""
-        doc1 = Document(title="Python Tutorial", content="Learn Python", owner_id=test_user.id)
-        doc2 = Document(title="JavaScript Guide", content="Learn JS", owner_id=test_user.id)
+        doc1 = Document(title="Python Tutorial", description="Learn Python", owner_id=test_user.id)
+        doc2 = Document(title="JavaScript Guide", description="Learn JS", owner_id=test_user.id)
         session.add_all([doc1, doc2])
         await session.commit()
 
-        response = await client.get("/api/documents?search=Python", headers=auth_headers)
+        response = await client.get("/api/v1/documents?search=Python", headers=auth_headers)
         assert response.status_code == 200
         data = response.json()
         assert len(data["items"]) == 1
@@ -140,6 +143,6 @@ class TestDocuments:
     async def test_list_documents_sorting(self, client: AsyncClient, auth_headers):
         """Test sorting documents."""
         response = await client.get(
-            "/api/documents?sort_by=title&sort_order=asc", headers=auth_headers
+            "/api/v1/documents?sort_by=title&sort_order=asc", headers=auth_headers
         )
         assert response.status_code == 200

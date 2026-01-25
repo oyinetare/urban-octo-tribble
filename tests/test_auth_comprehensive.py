@@ -9,7 +9,7 @@ class TestAuthComprehensive:
     async def test_register_success(self, client: AsyncClient):
         """Test successful registration."""
         response = await client.post(
-            "/api/auth/register",
+            "/api/v1/auth/register",
             json={
                 "email": "newuser@test.com",
                 "username": "newuser",
@@ -25,7 +25,7 @@ class TestAuthComprehensive:
     async def test_register_duplicate_email(self, client: AsyncClient, test_user):
         """Test registration with duplicate email."""
         response = await client.post(
-            "/api/auth/register",
+            "/api/v1/auth/register",
             json={
                 "email": test_user.email,
                 "username": "different",
@@ -39,7 +39,7 @@ class TestAuthComprehensive:
     async def test_register_duplicate_username(self, client: AsyncClient, test_user):
         """Test registration with duplicate username."""
         response = await client.post(
-            "/api/auth/register",
+            "/api/v1/auth/register",
             json={
                 "email": "different@test.com",
                 "username": test_user.username,
@@ -52,7 +52,7 @@ class TestAuthComprehensive:
     async def test_login_success_with_cookie(self, client: AsyncClient, test_user):
         """Test login sets refresh token cookie."""
         response = await client.post(
-            "/api/auth/login",
+            "/api/v1/auth/login",
             data={
                 "username": test_user.username,
                 "password": "testpassword",
@@ -75,7 +75,7 @@ class TestAuthComprehensive:
         old_last_login = test_user.last_login
 
         await client.post(
-            "/api/auth/login",
+            "/api/v1/auth/login",
             data={
                 "username": test_user.username,
                 "password": "testpassword",
@@ -90,7 +90,7 @@ class TestAuthComprehensive:
     async def test_login_wrong_password(self, client: AsyncClient, test_user):
         """Test login with wrong password."""
         response = await client.post(
-            "/api/auth/login",
+            "/api/v1/auth/login",
             data={
                 "username": test_user.username,
                 "password": "wrongpassword",
@@ -102,7 +102,7 @@ class TestAuthComprehensive:
     async def test_login_nonexistent_user(self, client: AsyncClient):
         """Test login with non-existent user."""
         response = await client.post(
-            "/api/auth/login",
+            "/api/v1/auth/login",
             data={
                 "username": "nonexistent",
                 "password": "password",
@@ -127,7 +127,7 @@ class TestAuthComprehensive:
         await session.commit()
 
         response = await client.post(
-            "/api/auth/login",
+            "/api/v1/auth/login",
             data={
                 "username": "inactive",
                 "password": "password",
@@ -140,7 +140,7 @@ class TestAuthComprehensive:
         """Test refreshing access token."""
         # Login first
         login_response = await client.post(
-            "/api/auth/login",
+            "/api/v1/auth/login",
             data={
                 "username": test_user.username,
                 "password": "testpassword",
@@ -151,7 +151,7 @@ class TestAuthComprehensive:
         cookies = login_response.cookies
 
         # Refresh token
-        response = await client.post("/api/auth/refresh", cookies=cookies)
+        response = await client.post("/api/v1/auth/refresh", cookies=cookies)
         assert response.status_code == 200
 
         data = response.json()
@@ -161,7 +161,7 @@ class TestAuthComprehensive:
     @pytest.mark.asyncio
     async def test_refresh_token_missing(self, client: AsyncClient):
         """Test refresh without token."""
-        response = await client.post("/api/auth/refresh")
+        response = await client.post("/api/v1/auth/refresh")
         assert response.status_code == 401
 
     @pytest.mark.asyncio
@@ -172,13 +172,15 @@ class TestAuthComprehensive:
         # Create access token (wrong type)
         access_token = token_manager.create_access_token(data={"sub": "test", "scopes": ["read"]})
 
-        response = await client.post("/api/auth/refresh", cookies={"refresh_token": access_token})
+        response = await client.post(
+            "/api/v1/auth/refresh", cookies={"refresh_token": access_token}
+        )
         assert response.status_code == 401
 
     @pytest.mark.asyncio
     async def test_logout_success(self, client: AsyncClient, auth_headers):
         """Test logout."""
-        response = await client.post("/api/auth/logout", headers=auth_headers)
+        response = await client.post("/api/v1/auth/logout", headers=auth_headers)
         assert response.status_code == 200
 
         data = response.json()

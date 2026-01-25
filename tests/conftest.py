@@ -168,7 +168,6 @@ async def test_document(session: AsyncSession, test_user: User) -> Document:
     document = Document(
         title="Test Document",
         description="Test Description",
-        content="Test Content",
         owner_id=test_user.id,
     )
     session.add(document)

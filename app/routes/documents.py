@@ -5,7 +5,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col, select
 
 from app.core import SortOrder, get_session
-from app.dependencies import get_current_user, pagination_params, verify_document_ownership
+from app.dependencies import (
+    get_current_user,
+    pagination_params,
+    verify_document_ownership,
+)
 from app.exceptions import AppException
 from app.models import Document, ShortURL, User
 from app.schemas import (
@@ -71,6 +75,7 @@ async def update_document(
     document_data: DocumentUpdate,
     document: Document = Depends(verify_document_ownership),
     session: AsyncSession = Depends(get_session),
+    # storage: MinIOAdapter = Depends(get_storage_service),
 ) -> Document:
     """
     Update a document (idempotent by design).
@@ -115,7 +120,7 @@ async def list_user_documents(
     Query parameters:
     - page: Page number (default: 1)
     - page_size: Items per page (default: 20, max: 100)
-    - search: Search in title/content
+    - search: Search in title/description
     - sort_by: Field to sort by (default: created_at)
     - sort_order: asc or desc (default: desc)
     """
@@ -196,7 +201,7 @@ async def create_short_url(
             short_code=existing_url.short_code,
             document_id=existing_url.document_id,
             clicks=existing_url.clicks,
-            original_url=f"/api/documents/{document.id}",
+            original_url=f"/api/v1/documents/{document.id}",
             short_url=f"/d/{existing_url.short_code}",
         )
 
@@ -215,7 +220,7 @@ async def create_short_url(
         short_code=short_url.short_code,
         document_id=short_url.document_id,
         clicks=short_url.clicks,
-        original_url=f"/api/documents/{document.id}",
+        original_url=f"/api/v1/documents/{document.id}",
         short_url=f"/d/{short_url.short_code}",
     )
 

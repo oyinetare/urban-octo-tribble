@@ -17,14 +17,14 @@ class TestMiddleware:
     # @pytest.mark.asyncio
     # async def test_versioning_headers_v1(self, client: AsyncClient, auth_headers):
     #     """Test v1 endpoints have deprecation headers."""
-    #     response = await client.get("/api/users/me", headers=auth_headers)
+    #     response = await client.get("/api/v1/users/me", headers=auth_headers)
     #     assert "Deprecation" in response.headers
 
     @pytest.mark.asyncio
     async def test_cors_headers(self, client: AsyncClient):
         """Test CORS is configured."""
         _response = await client.options(
-            "/api/users/me", headers={"Origin": "http://localhost:8080"}
+            "/api/v1/users/me", headers={"Origin": "http://localhost:8080"}
         )
         # CORS middleware handles OPTIONS
 
@@ -38,5 +38,5 @@ class TestMiddleware:
     @pytest.mark.asyncio
     async def test_rate_limit_headers(self, client: AsyncClient, auth_headers):
         """Test rate limit headers (if Redis available)."""
-        _response = await client.get("/api/users/me", headers=auth_headers)
+        _response = await client.get("/api/v1/users/me", headers=auth_headers)
         # Headers may or may not be present depending on Redis availability

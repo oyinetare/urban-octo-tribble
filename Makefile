@@ -1,4 +1,4 @@
-.PHONY: install dev-install format lint type-check test test-cov clean run migrate pre-commit help check-docker-up run-fresh gaf
+.PHONY: install dev-install format lint type-check test test-cov clean run migrate pre-commit help check-docker-up run-fresh gaf clean-install
 
 help:  ## Show this help message
 	@echo "Available commands:"
@@ -17,6 +17,9 @@ install:  ## Install production dependencies
 dev-install:  ## Install all dependencies including dev tools
 	uv sync --all-extras
 	uv run pre-commit install
+
+clean-install: ## Force a Reinstallation - re-download and re-install all packages
+	uv sync --reinstall
 
 format:  ## Format code with ruff
 	uv run ruff format .
@@ -96,7 +99,7 @@ db-reset:
 	uv run alembic downgrade base
 	uv run alembic upgrade head
 
-docker-up-hot-reload: check-docker-up ## Start Docker services
+docker-hot-reload: check-docker-up ## Start Docker services
 	docker compose up --build
 
 docker-up: check-docker-up ## Start Docker services

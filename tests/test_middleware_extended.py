@@ -22,7 +22,7 @@ class TestMiddlewareExtended:
     async def test_cors_headers(self, client: AsyncClient):
         """Test CORS headers are present."""
         _response = await client.options(
-            "/api/documents/", headers={"Origin": "http://localhost:8080"}
+            "/api/v1/documents/", headers={"Origin": "http://localhost:8080"}
         )
         # CORS headers should be present
         # Response depends on CORS middleware configuration
@@ -30,7 +30,7 @@ class TestMiddlewareExtended:
     @pytest.mark.asyncio
     async def test_security_headers_on_all_endpoints(self, client: AsyncClient):
         """Test security headers on various endpoints."""
-        endpoints = ["/", "/health", "/api/users/me"]
+        endpoints = ["/", "/health", "/api/v1/users/me"]
 
         for endpoint in endpoints:
             response = await client.get(endpoint)

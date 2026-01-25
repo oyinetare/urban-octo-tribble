@@ -20,7 +20,7 @@ from app.schemas import PaginationParams
 from app.services import MinIOAdapter
 
 oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl="/api/auth/login",
+    tokenUrl="/api/v1/auth/login",
     scopes={
         "read": "Read access to resources",
         "write": "Write access to resources",

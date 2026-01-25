@@ -11,12 +11,11 @@ class TestDocumentsEdgeCases:
     async def test_create_document_with_description(self, client: AsyncClient, auth_headers):
         """Test creating document with description."""
         response = await client.post(
-            "/api/documents",
+            "/api/v1/documents",
             headers=auth_headers,
             json={
                 "title": "Doc with description",
                 "description": "A detailed description",
-                # "content": "Content"
             },
         )
         assert response.status_code == 201
@@ -36,7 +35,7 @@ class TestDocumentsEdgeCases:
 
         # Test ascending sort
         response = await client.get(
-            "/api/documents?sort_by=title&sort_order=asc", headers=auth_headers
+            "/api/v1/documents?sort_by=title&sort_order=asc", headers=auth_headers
         )
         assert response.status_code == 200
         items = response.json()["items"]
@@ -50,7 +49,7 @@ class TestDocumentsEdgeCases:
     ):
         """Test updating only description."""
         response = await client.put(
-            f"/api/documents/{test_document.id}",
+            f"/api/v1/documents/{test_document.id}",
             headers=auth_headers,
             json={"description": "New description"},
         )
@@ -64,14 +63,13 @@ class TestDocumentsEdgeCases:
         """Test searching in description field."""
         doc = Document(
             title="Test",
-            description="Special unique keyword",
-            # content="Content",
+            description="Description special unique keyword",
             owner_id=test_user.id,
         )
         session.add(doc)
         await session.commit()
 
-        response = await client.get("/api/documents?search=unique", headers=auth_headers)
+        response = await client.get("/api/v1/documents?search=unique", headers=auth_headers)
         assert response.status_code == 200
         items = response.json()["items"]
         assert len(items) > 0

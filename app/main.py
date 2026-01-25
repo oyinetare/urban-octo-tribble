@@ -200,8 +200,8 @@ async def readiness_check():
 # --- ROUTERS ---
 
 
-app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
-app.include_router(users.router, prefix="/api/users", tags=["Users"])
-app.include_router(documents.router, prefix="/api/documents", tags=["Documents"])
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
+app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
+app.include_router(documents.router, prefix="/api/v1/documents", tags=["Documents"])
 # Redirect router WITHOUT api prefix (for cleaner URLs like /d/abc123)
 app.include_router(documents.redirect_router)
