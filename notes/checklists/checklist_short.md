@@ -343,12 +343,12 @@
 - [x] Add MinIO to Docker Compose
 - [x] Create storage buckets
 - [ ] Configure access policies
-- [ ] Test connectivity
-- [ ] `POST /documents/upload` - Multipart file upload
-- [ ] Support PDF, TXT, DOCX, MD
-- [ ] Validate file types and sizes
+- [x] Test connectivity
+- [x] `POST /documents/upload` - Multipart file upload
+- [x] Support PDF, TXT, DOCX, MD
+- [x] Validate file types and sizes
 - [ ] Generate unique filenames
-- [ ] Add file_path, file_size, mime_type fields to Document model
+- [x] Add file_path, file_size, mime_type fields to Document model
 - [ ] Add status field (uploading, processing, completed, failed)
 - [ ] Add error_message field
 - [ ] Create migration

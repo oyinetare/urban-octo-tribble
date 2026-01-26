@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from fastapi import Query
+from fastapi import Form, Query
 from pydantic import BaseModel, Field
 
 from app.core import SortOrder
@@ -13,11 +13,18 @@ class DocumentBase(BaseModel):
     description: str | None = Field(default=None, max_length=1000)
 
 
+# Only use a Pydantic model for the entire request if you are not uploading a file and only sending text-based data as a JSON object. If your project specifically requires a model-based approach for forms, you can use:
 class DocumentCreate(BaseModel):
-    """Schema for creating a new document."""
+    title: str
+    description: str | None = None
 
-    title: str = Field(min_length=1, max_length=255)
-    description: str | None = Field(default=None, max_length=1000)
+    @classmethod
+    def as_form(
+        cls,
+        title: str = Form(default=None, min_length=1, max_length=255),
+        description: str | None = Form(default=None, max_length=1000),
+    ):
+        return cls(title=title, description=description)
 
 
 class DocumentUpdate(BaseModel):

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile, status
+from fastapi import APIRouter, Depends, File, UploadFile, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,22 +7,24 @@ from sqlmodel import col, select
 from app.core import SortOrder, get_session
 from app.dependencies import (
     get_current_user,
+    get_storage_service,
     pagination_params,
     verify_document_ownership,
 )
-from app.exceptions import AppException
+from app.exceptions import AppException, InvalidFileException
 from app.models import Document, ShortURL, User
 from app.schemas import (
     DocumentCreate,
     DocumentFilterParams,
     DocumentResponse,
     DocumentUpdate,
+    DocumentUploadResponse,
     PaginatedResponse,
     PaginationParams,
     ShortenResponse,
     StatsResponse,
 )
-from app.services import validator
+from app.services import MinIOAdapter, validator
 from app.utility import base62_encoder, id_generator
 
 router = APIRouter()
@@ -53,12 +55,69 @@ async def create_document(
     return document
 
 
-@router.post("/upload")
-async def upload_document(file: UploadFile):
+@router.post("/upload", response_model=DocumentUploadResponse, status_code=status.HTTP_201_CREATED)
+async def upload_document(
+    document_metadata: DocumentCreate = Depends(DocumentCreate.as_form),
+    file: UploadFile = File(...),
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+    storage: MinIOAdapter = Depends(get_storage_service),
+):
     # Validate
     valid, message = await validator.validate(file)
     if not valid:
-        raise AppException(message)
+        raise InvalidFileException(message)
+
+    # Check file size
+    file_data = await file.read()
+    file_size = len(file_data)
+
+    # Extract and validate filename and content_type
+    filename = file.filename or "unnamed_file"
+    content_type = file.content_type or "application/octet-stream"
+    file_size = len(file_data)
+
+    try:
+        import io
+
+        file_stream = io.BytesIO(file_data)
+
+        storage_key = await storage.upload(
+            file_data=file_stream,
+            filename=filename,
+            content_type=content_type,
+            user_id=current_user.id,
+        )
+
+        # Create database record
+        document = Document(
+            title=document_metadata.title,
+            description=document_metadata.description,
+            filename=filename,
+            storage_key=storage_key,
+            file_size=file_size,
+            content_type=content_type,
+            owner_id=current_user.id,
+        )
+
+        session.add(document)
+        await session.commit()
+        await session.refresh(document)
+
+        return DocumentUploadResponse(
+            id=document.id,
+            title=document.title,
+            filename=document.filename,
+            file_size=document.file_size,
+            content_type=document.content_type,
+            storage_key=document.storage_key,
+        )
+    except Exception as e:
+        await session.rollback()
+        raise AppException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            message=f"An error occurred: {str(e)}",
+        ) from e
 
 
 @router.get("/{document_id}", response_model=DocumentResponse, status_code=status.HTTP_200_OK)

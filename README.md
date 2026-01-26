@@ -98,6 +98,13 @@ ___
 
 ## API Usage
 
+### Health
+```bash
+curl -X GET http://localhost:8000/health/live | jq
+
+curl -X GET http://localhost:8000/health/ready | jq
+```
+
 ### Authentication Flow
 
 ```bash
@@ -149,6 +156,13 @@ curl -X POST http://localhost:8000/api/v1/documents \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"title": "Test Doc", "description": "Test"}' | jq
+
+# Upload document
+curl -X POST http://localhost:8000/api/v1/documents/upload \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "file=@document.txt" \
+  -F "title=Test" \
+  -F "description=Untitled description" | jq
 
 # 2. Get document ID
 curl -X GET http://localhost:8000/api/v1/documents/{docuemnt_id} \

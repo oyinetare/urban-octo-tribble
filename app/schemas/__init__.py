@@ -4,6 +4,7 @@ from app.schemas.document import (
     DocumentFilterParams,
     DocumentResponse,
     DocumentUpdate,
+    DocumentUploadResponse,
     SortOrder,
 )
 from app.schemas.pagination import PaginatedResponse, PaginationParams
@@ -16,6 +17,7 @@ __all__ = [
     "DocumentResponse",
     "DocumentUpdate",
     "DocumentFilterParams",
+    "DocumentUploadResponse",
     "SortOrder",
     "PaginatedResponse",
     "PaginationParams",

@@ -1,10 +1,12 @@
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import BinaryIO
 
 import aioboto3
 from botocore.exceptions import ClientError
 
 from app.exceptions import StorageException
+from app.utility import id_generator
 
 
 class StorageAdapter(ABC):
@@ -55,7 +57,11 @@ class MinIOAdapter(StorageAdapter):
                     raise StorageException(f"Failed to create bucket: {inner_e}") from inner_e
 
     async def upload(
-        self, file_data: BinaryIO, filename: str, content_type: str = "application/octet-stream"
+        self,
+        file_data: BinaryIO,
+        filename: str,
+        content_type: str = "application/octet-stream",
+        user_id: int | None = None,
     ) -> str:
         """
         Upload a file to MinIO.
@@ -72,7 +78,17 @@ class MinIOAdapter(StorageAdapter):
         Raises:
             StorageException: If upload fails
         """
-        object_key = f"uploads/{filename}"
+        # Generate unique object key
+        unique_id = str(id_generator.generate())
+
+        suffix = Path(filename).suffix  # returns ".txt" (including the dot)
+        unique_id = str(id_generator.generate())
+
+        if user_id:
+            object_key = f"users/{user_id}/{unique_id}{suffix}"
+        else:
+            object_key = f"uploads/{unique_id}{suffix}"
+
         async with self.session.client("s3", **self.config) as s3:
             try:
                 await s3.put_object(

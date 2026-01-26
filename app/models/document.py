@@ -18,16 +18,14 @@ class Document(BaseModel, table=True):
 
     # Document metadata
     title: str = Field(max_length=255, index=True)
-
-    # Document metadata
-    title: str = Field(max_length=255, index=True)
     description: str | None = Field(default=None, max_length=1000)
 
     # File storage
-    # filename: str = Field(max_length=255)
-    # storage_key: str = Field(max_length=500)  # Path/key in MinIO
-    # file_size: int  # Size in bytes
-    # content_type: str = Field(max_length=100)
+    filename: str = Field(max_length=255)
+    storage_key: str = Field(max_length=500)  # Path/key/file_path in MinIO
+    file_size: int  # Size in bytes
+    # mime_type
+    content_type: str = Field(max_length=100)
 
     # Relationships/Ownership
     owner_id: int = Field(
