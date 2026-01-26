@@ -162,7 +162,7 @@ curl -X POST http://localhost:8000/api/v1/documents/upload \
   -H "Authorization: Bearer $TOKEN" \
   -F "file=@document.txt" \
   -F "title=Test" \
-  -F "description=Untitled description" | jq
+  -F "description=Test description" | jq
 
 # 2. Get document ID
 curl -X GET http://localhost:8000/api/v1/documents/{docuemnt_id} \

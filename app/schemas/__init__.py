@@ -1,6 +1,7 @@
 from app.schemas.document import (
     DocumentBase,
     DocumentCreate,
+    DocumentDownloadResponse,
     DocumentFilterParams,
     DocumentResponse,
     DocumentUpdate,
@@ -18,6 +19,7 @@ __all__ = [
     "DocumentUpdate",
     "DocumentFilterParams",
     "DocumentUploadResponse",
+    "DocumentDownloadResponse",
     "SortOrder",
     "PaginatedResponse",
     "PaginationParams",

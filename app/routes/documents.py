@@ -15,6 +15,7 @@ from app.exceptions import AppException, InvalidFileException
 from app.models import Document, ShortURL, User
 from app.schemas import (
     DocumentCreate,
+    DocumentDownloadResponse,
     DocumentFilterParams,
     DocumentResponse,
     DocumentUpdate,
@@ -118,6 +119,20 @@ async def upload_document(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             message=f"An error occurred: {str(e)}",
         ) from e
+
+
+@router.get("/{document_id}/download", response_model=DocumentDownloadResponse)
+async def get_download_url(
+    document: Document = Depends(verify_document_ownership),
+    storage: MinIOAdapter = Depends(get_storage_service),
+):
+    """
+    Generate a presigned download URL for a document.
+    """
+    # Generate presigned URL
+    download_url = await storage.get_presigned_url(object_key=document.storage_key)
+
+    return DocumentDownloadResponse(download_url=download_url)
 
 
 @router.get("/{document_id}", response_model=DocumentResponse, status_code=status.HTTP_200_OK)

@@ -361,8 +361,8 @@
 - [ ] Test download
 
 ### Done When
-- [ ] Files upload to MinIO
-- [ ] Metadata saved to Postgres
+- [x] Files upload to MinIO
+- [x] Metadata saved to Postgres
 - [ ] Can download files
 - [ ] File validation works
 - [ ] Status tracking implemented

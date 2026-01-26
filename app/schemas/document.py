@@ -38,8 +38,8 @@ class DocumentResponse(BaseModel):
     """Schema for document responses."""
 
     id: int
-    title: str = Field(min_length=1, max_length=255)
-    description: str | None = Field(default=None, max_length=1000)
+    title: str
+    description: str
     owner_id: int
     created_at: datetime
 
@@ -69,3 +69,10 @@ class DocumentUploadResponse(BaseModel):
     file_size: int
     content_type: str
     storage_key: str
+
+
+class DocumentDownloadResponse(BaseModel):
+    """Schema for response after successful file/document download."""
+
+    download_url: str
+    expires_in_seconds: int = 3600
