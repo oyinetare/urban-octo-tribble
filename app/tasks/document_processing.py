@@ -47,7 +47,7 @@ class ProcessingTask(Task):
 
 @celery_app.task(base=ProcessingTask, bind=True)
 def process_document(self, document_id: int):
-    # Get the current loop for this worker process
+    # Standard loop handling
     try:
         loop = asyncio.get_event_loop()
     except RuntimeError:
@@ -55,29 +55,34 @@ def process_document(self, document_id: int):
         asyncio.set_event_loop(loop)
 
     # Run the task logic in the process-level loop
-    return loop.run_until_complete(_async_process(document_id))
+    # Pass 'self' so the async function can update status
+    return loop.run_until_complete(_async_process(self, document_id))
 
 
-async def _async_process(document_id: int):
+async def _async_process(self, document_id: int):
     async with AsyncSessionLocal() as session:
-        # from app.core.database import engine
-        # 1. Get document and explicitly check for None
+        # 1. Start (10%) Get document and explicitly check for None
+        self.update_state(state="PROGRESS", meta={"percent": 10, "step": "fetching"})
         document = await session.get(Document, document_id)
 
         if document is None:
-            # Raising an error here will trigger on_failure in ProcessingTask
-            raise ValueError(f"Document with ID {document_id} not found in database.")
+            # This error message flows to on_failure automatically
+            raise ValueError(f"Document {document_id} not found.")
 
-        # 2. Safely access attributes now that we know 'document' exists
+        # 2. Download (40%) Safely access attributes now that we know 'document' exists
+        self.update_state(state="PROGRESS", meta={"percent": 40, "step": "downloading"})
         content = await storage_service.download(document.storage_key)
 
-        # 3. Extract text
+        # 3. Extract (70%)
+        self.update_state(state="PROGRESS", meta={"percent": 70, "step": "extracting"})
         extractor = extraction_factory.get_extractor(document.content_type)
         text = await extractor.extract(content)
 
-        # 4. Update and commit
+        # 4. Save (90%) Update and commit
+        self.update_state(state="PROGRESS", meta={"percent": 90, "step": "saving"})
         document.content = text
         document.processing_status = "completed"
         await session.commit()
 
-        return {"document_id": document_id, "status": "success"}
+        # Success (100%)
+        return {"document_id": document_id, "status": "success", "text_length": len(text)}

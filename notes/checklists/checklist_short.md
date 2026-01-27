@@ -394,19 +394,19 @@
 - [x] Update document status
 - [x] Handle errors and retries
 - [x] `GET /documents/{id}/status` - Check processing status
-- [ ] Return progress percentage
-- [ ] Return error messages
-- [ ] Test extraction for each file type
-- [ ] Test error handling
-- [ ] Test retry logic
-- [ ] Test status updates
+- [x] Return progress percentage
+- [x] Return error messages
+- [x] Test extraction for each file type
+- [x] Test error handling
+- [x] Test retry logic
+- [x] Test status updates
 
 ### Done When
-- [ ] Celery worker running
-- [ ] Text extracted from all file types
-- [ ] Text saved to database
-- [ ] Status updates work
-- [ ] Error handling and retries work
+- [x] Celery worker running
+- [x] Text extracted from all file types
+- [x] Text saved to database
+- [x] Status updates work
+- [x] Error handling and retries work
 
 ### Interview Questions You Can Answer
 - "Design a document processing pipeline"

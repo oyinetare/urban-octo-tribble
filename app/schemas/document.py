@@ -90,6 +90,7 @@ class ProcessingStatusResponse(BaseModel):
     document_id: int
     status: ProcessingStatus
     error: str | None = None
-    # task_id: str | None = None
+    progress: int = 0
+    task_id: str | None = None
     # task_state: str | None = None
     # task_result: dict | None = None

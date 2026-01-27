@@ -152,21 +152,51 @@ curl -X POST 'http://localhost:8000/api/v1/auth/logout' \
 ### Docments
 ```bash
 # 1. Create a document
-curl -X POST http://localhost:8000/api/v1/documents \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"title": "Test Doc", "description": "Test"}' | jq
+# curl -X POST http://localhost:8000/api/v1/documents \
+#   -H "Authorization: Bearer $TOKEN" \
+#   -H "Content-Type: application/json" \
+#   -d '{"title": "Test Doc", "description": "Test"}' | jq
 
 # Upload document
-curl -X POST http://localhost:8000/api/v1/documents/upload \
+# curl -X POST http://localhost:8000/api/v1/documents/upload \
+#   -H "Authorization: Bearer $TOKEN" \
+#   -F "file=@document.txt" \
+#   -F "title=Test" \
+#   -F "description=Test description" | jq
+
+# procewsing status
+# curl -X GET http://localhost:8000/api/v1/documents/{docuemnt_id}/status\
+#   -H "Authorization: Bearer $TOKEN" | jq
+
+RESPONSE=$(curl -X POST http://localhost:8000/api/v1/documents/upload \
   -H "Authorization: Bearer $TOKEN" \
   -F "file=@document.txt" \
   -F "title=Test" \
-  -F "description=Test description" | jq
+  -F "description=Test description")
 
-# procewsing status
-curl -X GET http://localhost:8000/api/v1/documents/{docuemnt_id}/status\
+# Print the response pretty-printed
+echo $RESPONSE | jq
+
+# Extract the document_id for the next command
+DOC_ID=$(echo $RESPONSE | jq -r '.id')
+
+curl -X GET http://localhost:8000/api/v1/documents/$DOC_ID/status \
   -H "Authorization: Bearer $TOKEN" | jq
+
+# loop to watch the percentage go up in real-time
+while true; do
+  STATUS_RESP=$(curl -s -X GET http://localhost:8000/api/v1/documents/$DOC_ID/status -H "Authorization: Bearer $TOKEN")
+  echo $STATUS_RESP | jq -c '.'
+
+  # Exit loop if completed or failed
+  CURRENT_STATUS=$(echo $STATUS_RESP | jq -r '.status')
+  if [[ "$CURRENT_STATUS" == "completed" || "$CURRENT_STATUS" == "failed" ]]; then
+    break
+  fi
+  sleep 1
+done
+
+
 
 # 2. Get document ID
 curl -X GET http://localhost:8000/api/v1/documents/{docuemnt_id} \

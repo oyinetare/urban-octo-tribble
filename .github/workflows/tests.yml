@@ -14,11 +14,19 @@ jobs:
         SECRET_KEY: "ci-test-secret-key-not-for-production"
         REDIS_HOST: localhost
         REDIS_PORT: 6379
+        REDIS_PASSWORD: "changeme"
         MINIO_ENDPOINT: localhost:9000
         MINIO_ACCESS_KEY: minioadmin
         MINIO_SECRET_KEY: minioadmin
         MINIO_ROOT_USER: minioadmin
         MINIO_ROOT_PASSWORD: minioadmin
+        CELERY_BROKER_URL: "redis://:changeme@redis:6379/0"
+        CELERY_RESULT_BACKEND: "redis://:changeme@redis:6379/0"
+        CELERY_TASK_SERIALIZER: "json"
+        CELERY_RESULT_SERIALIZER: "json"
+        CELERY_ACCEPT_CONTENT: '[ "json" ]'
+        CELERY_TIMEZONE: "UTC"
+        CELERY_ENABLE_UTC: "True"
         UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
 
     steps:
