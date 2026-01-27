@@ -3,7 +3,7 @@ from datetime import datetime
 from fastapi import Form, Query
 from pydantic import BaseModel, Field
 
-from app.core import SortOrder
+from app.core import ProcessingStatus, SortOrder
 
 
 class DocumentBase(BaseModel):
@@ -21,7 +21,8 @@ class DocumentCreate(BaseModel):
     @classmethod
     def as_form(
         cls,
-        title: str = Form(default=None, min_length=1, max_length=255),
+        # Use ... to mark it as required in the Form
+        title: str = Form(..., min_length=1, max_length=255),
         description: str | None = Form(default=None, max_length=1000),
     ):
         return cls(title=title, description=description)
@@ -42,6 +43,8 @@ class DocumentResponse(BaseModel):
     description: str
     owner_id: int
     created_at: datetime
+    processing_status: ProcessingStatus
+    processing_error: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -69,6 +72,8 @@ class DocumentUploadResponse(BaseModel):
     file_size: int
     content_type: str
     storage_key: str
+    processing_status: ProcessingStatus
+    processing_error: str | None = None
 
 
 class DocumentDownloadResponse(BaseModel):
@@ -76,3 +81,14 @@ class DocumentDownloadResponse(BaseModel):
 
     download_url: str
     expires_in_seconds: int = 3600
+
+
+class ProcessingStatusResponse(BaseModel):
+    """Schema for checking processing status."""
+
+    document_id: int
+    status: ProcessingStatus
+    error: str | None = None
+    task_id: str | None = None
+    task_state: str | None = None
+    task_result: dict | None = None

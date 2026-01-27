@@ -8,28 +8,22 @@ class TestDocumentsEdgeCases:
     """Additional document tests for edge cases."""
 
     @pytest.mark.asyncio
-    async def test_create_document_with_description(self, client: AsyncClient, auth_headers):
-        """Test creating document with description."""
-        response = await client.post(
-            "/api/v1/documents",
-            headers=auth_headers,
-            json={
-                "title": "Doc with description",
-                "description": "A detailed description",
-            },
-        )
-        assert response.status_code == 201
-        data = response.json()
-        assert data["description"] == "A detailed description"
-
-    @pytest.mark.asyncio
     async def test_list_documents_with_sorting(
         self, client: AsyncClient, auth_headers, session, test_user
     ):
         """Test document sorting."""
         # Create documents with different titles
         for title in ["Zebra", "Apple", "Mango"]:
-            doc = Document(title=title, description="Description", owner_id=test_user.id)
+            doc = Document(
+                title=title,
+                description="Description",
+                owner_id=test_user.id,
+                storage_key="temporary_key",
+                filename="Test.pdf",
+                file_size=1024,
+                content_type="application/octet-stream",
+                status="pending",
+            )
             session.add(doc)
         await session.commit()
 
@@ -65,6 +59,11 @@ class TestDocumentsEdgeCases:
             title="Test",
             description="Description special unique keyword",
             owner_id=test_user.id,
+            storage_key="temporary_key",
+            filename="Test.pdf",
+            file_size=1024,
+            content_type="application/octet-stream",
+            status="pending",
         )
         session.add(doc)
         await session.commit()

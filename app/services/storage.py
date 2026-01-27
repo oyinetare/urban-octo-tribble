@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import BinaryIO
+from unittest.mock import AsyncMock
 
 import aioboto3
 from botocore.exceptions import ClientError
@@ -12,7 +13,11 @@ from app.utility import id_generator
 class StorageAdapter(ABC):
     @abstractmethod
     async def upload(
-        self, file_data: BinaryIO, filename: str, content_type: str = "application/octet-stream"
+        self,
+        file_data: BinaryIO,
+        filename: str,
+        content_type: str = "application/octet-stream",
+        user_id: int | None = None,
     ) -> str:
         pass
 
@@ -23,6 +28,48 @@ class StorageAdapter(ABC):
     @abstractmethod
     async def delete(self, object_key: str) -> None:
         pass
+
+    @abstractmethod
+    async def get_presigned_url(self, object_key: str, expires: int = 3600) -> str:
+        pass
+
+    @abstractmethod
+    async def file_exists(self, object_key: str) -> bool:
+        pass
+
+
+class MockStorageAdapter(StorageAdapter):
+    """Type-safe Mock implementation for tests."""
+
+    def __init__(self):
+        # Create internal mocks to track calls
+        self._upload_mock = AsyncMock(return_value="uploads/test_key.pdf")
+        self._download_mock = AsyncMock(return_value=b"test content")
+        self._delete_mock = AsyncMock(return_value=None)
+        self._presigned_url_mock = AsyncMock(return_value="http://test.com")
+        self._file_exists_mock = AsyncMock(return_value=True)
+
+    async def upload(
+        self,
+        file_data: BinaryIO,
+        filename: str,
+        content_type: str = "application/octet-stream",
+        user_id: int | None = None,
+    ) -> str:
+        # Call the internal mock and return its result
+        return await self._upload_mock(file_data, filename, content_type, user_id)
+
+    async def download(self, object_key: str) -> bytes:
+        return await self._download_mock(object_key)
+
+    async def delete(self, object_key: str) -> None:
+        await self._delete_mock(object_key)
+
+    async def get_presigned_url(self, object_key: str, expires: int = 3600) -> str:
+        return await self._presigned_url_mock(object_key, expires)
+
+    async def file_exists(self, object_key: str) -> bool:
+        return await self._file_exists_mock(object_key)
 
 
 class MinIOAdapter(StorageAdapter):

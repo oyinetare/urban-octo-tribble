@@ -1,3 +1,5 @@
+from io import BytesIO
+
 import pytest
 from httpx import AsyncClient
 
@@ -9,31 +11,135 @@ class TestDocumentsComprehensive:
 
     @pytest.mark.asyncio
     async def test_create_document_full(self, client: AsyncClient, auth_headers):
-        """Test creating document with all fields."""
+        # Create valid PDF content (small, under 10MB)
+        file_content = b"%PDF-1.4\n%fake pdf content for testing"
+        file_obj = BytesIO(file_content)
+
+        files = {"file": ("test.pdf", file_obj, "application/pdf")}
+        data = {"title": "Complete Document", "description": "Full description"}
+
         response = await client.post(
-            "/api/v1/documents",
+            "/api/v1/documents/upload",
             headers=auth_headers,
-            json={
-                "title": "Complete Document",
-                "description": "Full description",
-            },
+            data=data,
+            files=files,
         )
+
         assert response.status_code == 201
-        data = response.json()
-        assert data["title"] == "Complete Document"
-        assert data["description"] == "Full description"
+        response_data = response.json()
+        assert response_data["title"] == "Complete Document"
+        assert response_data["filename"] == "test.pdf"
 
     @pytest.mark.asyncio
     async def test_create_document_minimal(self, client: AsyncClient, auth_headers):
         """Test creating document with minimal fields."""
+        file_content = b"%PDF-1.4\n%minimal pdf content"
+        file_obj = BytesIO(file_content)
+
+        files = {"file": ("minimal.pdf", file_obj, "application/pdf")}
+        data = {"title": "Minimal Document", "description": "Minimal description"}
+
         response = await client.post(
-            "/api/v1/documents",
+            "/api/v1/documents/upload",
             headers=auth_headers,
-            json={
-                "title": "Minimal Doc",
-                "description": "Description",
-            },
+            data=data,
+            files=files,
         )
+
+        assert response.status_code == 201
+
+    @pytest.mark.asyncio
+    async def test_upload_file_too_large(self, client: AsyncClient, auth_headers):
+        """Test uploading file larger than 10MB limit."""
+        large_content = b"x" * (11 * 1024 * 1024)  # 11MB
+        file_obj = BytesIO(large_content)
+
+        files = {"file": ("large.pdf", file_obj, "application/pdf")}
+        data = {"title": "Large Document", "description": "Too large"}
+
+        response = await client.post(
+            "/api/v1/documents/upload",
+            headers=auth_headers,
+            data=data,
+            files=files,
+        )
+
+        # Debug
+        print(f"\nLARGE FILE TEST: Status={response.status_code}, Body={response.text}")
+
+        # Should fail validation with 400 or 422
+        assert response.status_code in [400, 422]
+
+        if response.status_code == 400:
+            message = response.json().get("message", "").lower()
+            assert any(word in message for word in ["large", "size", "max"])
+
+    @pytest.mark.asyncio
+    async def test_upload_invalid_file_type(self, client: AsyncClient, auth_headers):
+        """Test uploading unsupported file type."""
+        file_content = b"fake image content"
+        file_obj = BytesIO(file_content)
+
+        files = {"file": ("image.jpg", file_obj, "image/jpeg")}
+        data = {"title": "Image Document", "description": "Should fail"}
+
+        response = await client.post(
+            "/api/v1/documents/upload",
+            headers=auth_headers,
+            data=data,
+            files=files,
+        )
+
+        # Debug
+        print(f"\nINVALID TYPE TEST: Status={response.status_code}, Body={response.text}")
+
+        # Should fail validation
+        assert response.status_code in [400, 422]
+
+        if response.status_code == 400:
+            message = response.json().get("message", "").lower()
+            assert any(word in message for word in ["type", "invalid", "allowed"])
+
+    @pytest.mark.asyncio
+    async def test_upload_valid_text_file(self, client: AsyncClient, auth_headers):
+        """Test uploading valid text file."""
+        file_content = b"This is a text document with some content."
+        file_obj = BytesIO(file_content)
+
+        files = {"file": ("document.txt", file_obj, "text/plain")}
+        data = {"title": "Text Document", "description": "Plain text"}
+
+        response = await client.post(
+            "/api/v1/documents/upload",
+            headers=auth_headers,
+            data=data,
+            files=files,
+        )
+
+        assert response.status_code == 201
+
+    @pytest.mark.asyncio
+    async def test_upload_valid_docx_file(self, client: AsyncClient, auth_headers):
+        """Test uploading valid DOCX file."""
+        file_content = b"PK\x03\x04fake docx content"  # DOCX files start with PK
+        file_obj = BytesIO(file_content)
+
+        files = {
+            "file": (
+                "document.docx",
+                file_obj,
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            )
+        }
+        data = {"title": "Word Document", "description": "DOCX file"}
+
+        response = await client.post(
+            "/api/v1/documents/upload",
+            headers=auth_headers,
+            data=data,
+            files=files,
+        )
+
         assert response.status_code == 201
 
     @pytest.mark.asyncio
@@ -133,6 +239,11 @@ class TestDocumentsComprehensive:
                 title=f"Doc {i}",
                 description=f"Description {i}",
                 owner_id=test_user.id,
+                storage_key="temporary_key",
+                filename="Test.pdf",
+                file_size=1024,
+                content_type="application/pdf",
+                processing_status="pending",
             )
             session.add(doc)
         await session.commit()
@@ -152,10 +263,24 @@ class TestDocumentsComprehensive:
         """Test searching documents."""
         # Create specific documents
         doc1 = Document(
-            title="Python Tutorial", description="Learn Python programming", owner_id=test_user.id
+            title="Python Tutorial",
+            description="Learn Python programming",
+            owner_id=test_user.id,
+            storage_key="temporary_key",
+            filename="Test.pdf",
+            file_size=1024,
+            content_type="application/pdf",
+            processing_status="pending",
         )
         doc2 = Document(
-            title="JavaScript Guide", description="Learn JavaScript", owner_id=test_user.id
+            title="JavaScript Guide",
+            description="Learn JavaScript",
+            owner_id=test_user.id,
+            storage_key="temporary_key",
+            filename="Test.pdf",
+            file_size=1024,
+            content_type="application/pdf",
+            processing_status="pending",
         )
         session.add_all([doc1, doc2])
         await session.commit()

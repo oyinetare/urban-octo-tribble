@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, File, UploadFile, status
+import logging
+
+from fastapi import APIRouter, Depends, File, Response, UploadFile, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col, select
 
-from app.core import SortOrder, get_session
+from app.core import ProcessingStatus, SortOrder, get_session
 from app.dependencies import (
     get_current_user,
     get_storage_service,
@@ -25,15 +27,19 @@ from app.schemas import (
     ShortenResponse,
     StatsResponse,
 )
-from app.services import MinIOAdapter, validator
+from app.schemas.document import ProcessingStatusResponse
+from app.services import StorageAdapter, validator
 from app.utility import base62_encoder, id_generator
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
-@router.post("", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED, deprecated=True
+)
 async def create_document(
-    document_data: DocumentCreate,
+    document_metadata: DocumentCreate,
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ) -> Document:
@@ -43,17 +49,25 @@ async def create_document(
     Supports idempotency via Idempotency-Key header.
     """
     document = Document(
-        title=document_data.title,
-        description=document_data.description,
+        title=document_metadata.title,
+        description=document_metadata.description,
+        filename="",
+        storage_key="",
+        file_size=0,
+        content_type="application/octet-stream",
         owner_id=current_user.id,
-        shorturls=[],  # Initialize empty list
+        processing_status=ProcessingStatus.PENDING,
     )
 
-    session.add(document)
-    await session.commit()
-    await session.refresh(document)
-
-    return document
+    try:
+        session.add(document)
+        await session.commit()
+        await session.refresh(document)
+        return document
+    except Exception as e:
+        await session.rollback()
+        # Re-raise as AppException to handle it outside the TaskGroup
+        raise AppException(status_code=500, message=f"DB Error: {str(e)}") from e
 
 
 @router.post("/upload", response_model=DocumentUploadResponse, status_code=status.HTTP_201_CREATED)
@@ -62,31 +76,30 @@ async def upload_document(
     file: UploadFile = File(...),
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user),
-    storage: MinIOAdapter = Depends(get_storage_service),
+    storage: StorageAdapter = Depends(get_storage_service),
 ):
-    # Validate
+    # 1. Early exit if file is missing (prevents validator crashes)
+    if not file or not file.filename:
+        raise AppException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, message="No file uploaded"
+        )
+
+    # 2. Validate using your chain
     valid, message = await validator.validate(file)
     if not valid:
         raise InvalidFileException(message)
 
-    # Check file size
-    file_data = await file.read()
-    file_size = len(file_data)
-
-    # Extract and validate filename and content_type
-    filename = file.filename or "unnamed_file"
-    content_type = file.content_type or "application/octet-stream"
-    file_size = len(file_data)
+    # 3. Efficiently get size without loading everything into RAM
+    file.file.seek(0, 2)
+    file_size = file.file.tell()
+    file.file.seek(0)
 
     try:
-        import io
-
-        file_stream = io.BytesIO(file_data)
-
+        # Use the SpooledTemporaryFile directly instead of re-wrapping in BytesIO
         storage_key = await storage.upload(
-            file_data=file_stream,
-            filename=filename,
-            content_type=content_type,
+            file_data=file.file,
+            filename=file.filename,
+            content_type=file.content_type or "application/octet-stream",
             user_id=current_user.id,
         )
 
@@ -94,37 +107,48 @@ async def upload_document(
         document = Document(
             title=document_metadata.title,
             description=document_metadata.description,
-            filename=filename,
+            filename=file.filename,
             storage_key=storage_key,
             file_size=file_size,
-            content_type=content_type,
+            content_type=file.content_type,
             owner_id=current_user.id,
+            processing_status=ProcessingStatus.PENDING,
         )
 
         session.add(document)
         await session.commit()
         await session.refresh(document)
 
+        # Trigger background processing
+        # from app.tasks import process_document
+
+        # task = process_document.apply_async(args=[document.id])
+
         return DocumentUploadResponse(
-            id=document.id,
+            id=document.id or 0,
             title=document.title,
             filename=document.filename,
             file_size=document.file_size,
             content_type=document.content_type,
             storage_key=document.storage_key,
+            # task tracking
+            processing_status=ProcessingStatus.PROCESSING,
+            # task_id=task.id,
         )
+
     except Exception as e:
         await session.rollback()
+        # catching general Exception and re-raising as AppException is standard to avoid leaking TaskGroup details to the client.
         raise AppException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            message=f"An error occurred: {str(e)}",
+            message=f"Upload failed: {str(e)}",
         ) from e
 
 
 @router.get("/{document_id}/download", response_model=DocumentDownloadResponse)
-async def get_download_url(
+async def get_document_file(
     document: Document = Depends(verify_document_ownership),
-    storage: MinIOAdapter = Depends(get_storage_service),
+    storage: StorageAdapter = Depends(get_storage_service),
 ):
     """
     Generate a presigned download URL for a document.
@@ -136,7 +160,7 @@ async def get_download_url(
 
 
 @router.get("/{document_id}", response_model=DocumentResponse, status_code=status.HTTP_200_OK)
-def get_document(document: Document = Depends(verify_document_ownership)) -> Document:
+def get_document_metadata(document: Document = Depends(verify_document_ownership)) -> Document:
     """
     Get a document by ID.
     Only returns document if current user is the owner.
@@ -145,7 +169,7 @@ def get_document(document: Document = Depends(verify_document_ownership)) -> Doc
 
 
 @router.put("/{document_id}", response_model=DocumentResponse, status_code=status.HTTP_200_OK)
-async def update_document(
+async def update_document_metadata(
     document_data: DocumentUpdate,
     document: Document = Depends(verify_document_ownership),
     session: AsyncSession = Depends(get_session),
@@ -172,13 +196,33 @@ async def update_document(
 async def delete_document(
     document: Document = Depends(verify_document_ownership),
     session: AsyncSession = Depends(get_session),
+    storage: StorageAdapter = Depends(get_storage_service),
 ):
     """
     Delete a document (idempotent by design).
     Only owner can delete.
     """
-    await session.delete(document)
-    await session.commit()
+
+    # Delete file from MinIO
+    try:
+        await storage.delete(document.storage_key)
+    except Exception as e:
+        # Log error but continue with database deletion
+        print(f"Failed to delete file from storage: {e}")
+        logger.exception(f"Failed to delete file from storage: {e}")
+
+    # Delete database record
+    try:
+        await session.delete(document)
+        await session.commit()
+    except Exception as e:
+        await session.rollback()
+        raise AppException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            message=f"An error occurred: {str(e)}",
+        ) from e
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("", response_model=PaginatedResponse[DocumentResponse], status_code=status.HTTP_200_OK)
@@ -257,7 +301,7 @@ async def get_short_url_stats(
 
 # === SHORTEN ===
 @router.post(
-    "/share/{document_id}", status_code=status.HTTP_201_CREATED, response_model=ShortenResponse
+    "/{document_id}/share", status_code=status.HTTP_201_CREATED, response_model=ShortenResponse
 )
 async def create_short_url(
     document: Document = Depends(verify_document_ownership),
@@ -325,3 +369,36 @@ async def redirect_short_url(short_code: str, session: AsyncSession = Depends(ge
     # Redirect to original URL
     original_url = f"/documents/{short_url.document_id}"
     return RedirectResponse(url=original_url, status_code=301)
+
+
+# === PROCESSING ===
+
+
+@router.get("/{document_id}/status", response_model=ProcessingStatusResponse)
+async def get_processing_status(
+    document: Document = Depends(verify_document_ownership),
+):
+    """
+    Get the processing status of a document.
+
+    Status values:
+    - "pending": Waiting to be processed
+    - "processing": Currently being processed by Celery worker
+    - "completed": Ready for queries and summarization
+    - "failed": Processing failed (check error field)
+
+    Example:
+        GET /documents/1/status
+
+    Returns:
+        {
+            "document_id": 1,
+            "status": "completed",
+            "error": null
+        }
+    """
+    return ProcessingStatusResponse(
+        document_id=document.id,
+        status=document.status,
+        error=document.processing_error,
+    )

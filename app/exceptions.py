@@ -106,4 +106,4 @@ class InvalidFileException(AppException):
     """Exception for when an uploaded file is invalid."""
 
     def __init__(self, message: str = "Invalid file"):
-        super().__init__(status_code=status.HTTP_400_BAD_REQUEST, message=message)
+        super().__init__(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, message=message)

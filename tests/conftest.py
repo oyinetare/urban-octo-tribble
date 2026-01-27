@@ -1,6 +1,6 @@
 import asyncio
 import warnings
-from collections.abc import AsyncGenerator, Generator
+from collections.abc import AsyncGenerator
 
 import pytest
 import pytest_asyncio
@@ -10,8 +10,10 @@ from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel
 
 from app.core import get_session, redis_service, token_manager
+from app.dependencies import get_storage_service
 from app.main import app
 from app.models import Document, User
+from app.services import MockStorageAdapter, StorageAdapter
 
 # Suppress specific warnings at module level
 warnings.filterwarnings("ignore", message="coroutine.*was never awaited")
@@ -38,20 +40,19 @@ TestSessionLocal = async_sessionmaker(
 
 
 @pytest.fixture(scope="session")
-def event_loop() -> Generator:
-    """Create event loop for async tests."""
-    policy = asyncio.get_event_loop_policy()
-    loop = policy.new_event_loop()
+def event_loop():
+    """Create event loop and ensure engine disposal happens inside it."""
+    loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
 
-    # Cleanup pending tasks
+    # Run cleanup explicitly before closing
     try:
+        # If engine wasn't disposed yet, force it here
+        loop.run_until_complete(test_engine.dispose())
+
         pending = asyncio.all_tasks(loop)
-        for task in pending:
-            task.cancel()
-        loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
-    except Exception:
-        pass
+        if pending:
+            loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
     finally:
         loop.close()
 
@@ -76,14 +77,24 @@ async def session() -> AsyncGenerator[AsyncSession, None]:
         await conn.run_sync(SQLModel.metadata.drop_all)
 
 
-@pytest_asyncio.fixture(scope="function")
-async def client(session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
-    """Create test client with database session override."""
+@pytest_asyncio.fixture
+async def storage_mock():
+    return MockStorageAdapter()
 
+
+@pytest_asyncio.fixture(scope="function")
+async def client(session: AsyncSession, storage_mock: StorageAdapter):
+    """Create test client with database and storage overrides."""
+
+    # Define async overrides to match the expected signature of the dependencies
     async def override_get_session():
         yield session
 
+    async def override_get_storage():
+        yield storage_mock
+
     app.dependency_overrides[get_session] = override_get_session
+    app.dependency_overrides[get_storage_service] = override_get_storage
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as ac:
         try:
@@ -97,19 +108,12 @@ async def cleanup_resources():
     """Initialize and cleanup resources for entire test session."""
     # Setup
     await redis_service.initialize()
-
     yield
 
     # Cleanup - runs after ALL tests
-    try:
-        # Close Redis
-        if redis_service.client:
-            await redis_service.close()
-
-        # Dispose engine
-        await test_engine.dispose()
-    except Exception:
-        pass  # Suppress cleanup errors
+    if redis_service.client:
+        await redis_service.close()
+    await test_engine.dispose()
 
 
 @pytest_asyncio.fixture
@@ -164,12 +168,21 @@ async def admin_headers(admin_user: User) -> dict:
 
 @pytest_asyncio.fixture
 async def test_document(session: AsyncSession, test_user: User) -> Document:
-    """Create a test document."""
+    """
+    Create a test document.
+    Uses processing_status instead of status to match the model.
+    """
     document = Document(
         title="Test Document",
         description="Test Description",
+        filename="test_file.pdf",
+        storage_key="uploads/test_key",
+        file_size=1024,
+        content_type="application/pdf",
         owner_id=test_user.id,
+        processing_status="pending",
     )
+
     session.add(document)
     await session.commit()
     await session.refresh(document)

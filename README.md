@@ -186,7 +186,7 @@ curl -X PUT http://localhost:8000/api/v1/documents/{docuemnt_id} \
   -d '{"description": "Test update description"}' | jq
 
 # 6. share document link
-curl -X POST http://localhost:8000/api/v1/documents/share/{docuemnt_id} \
+curl -X POST http://localhost:8000/api/v1/documents/{docuemnt_id}/share \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" | jq
 ```

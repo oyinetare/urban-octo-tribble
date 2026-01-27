@@ -347,14 +347,14 @@
 - [x] `POST /documents/upload` - Multipart file upload
 - [x] Support PDF, TXT, DOCX, MD
 - [x] Validate file types and sizes
-- [ ] Generate unique filenames
+- [x] Generate unique filenames
 - [x] Add file_path, file_size, mime_type fields to Document model
-- [ ] Add status field (uploading, processing, completed, failed)
-- [ ] Add error_message field
-- [ ] Create migration
-- [ ] `GET /documents/{id}/download` - Download file from MinIO
+- [x] Add status field (uploading, processing, completed, failed)
+- [x] Add error_message field
+- [x] Create migration
+- [x] `GET /documents/{id}/download` - Download file from MinIO
 - [ ] Set proper Content-Type headers
-- [ ] Verify ownership
+- [x] Verify ownership
 - [ ] Test file upload (PDF, DOCX, TXT)
 - [ ] Test file size limits
 - [ ] Test invalid file types
@@ -364,7 +364,7 @@
 - [x] Files upload to MinIO
 - [x] Metadata saved to Postgres
 - [ ] Can download files
-- [ ] File validation works
+- [x] File validation works
 - [ ] Status tracking implemented
 
 ### Interview Questions You Can Answer

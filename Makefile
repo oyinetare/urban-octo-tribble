@@ -55,10 +55,10 @@ clean:  ## Clean up cache and build files
 	find . -type f -name "*.pyc" -delete
 	find . -type d -name ".pytest_cache" -exec rm -rf {} +
 	find . -type d -name ".ruff_cache" -exec rm -rf {} +
-	find . -type d -name ".mypy_cache" -exec rm -rf {} +
 	rm -rf htmlcov/
 	rm -rf .coverage
 	rm -rf .coverage*
+# 	find . -type d -name ".mypy_cache" -exec rm -rf {} +
 
 check-docker-up:
 	@docker info >/dev/null 2>&1 || (echo "Error: Docker daemon is not running." && exit 1)
