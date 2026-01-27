@@ -1,48 +1,12 @@
 import asyncio
 import logging
 
-from celery import Task
-
 from app.celery_app import celery_app
-from app.core import AsyncSessionLocal, extraction_factory
+from app.core import AsyncSessionLocal, ProcessingTask, extraction_factory
 from app.models import Document
 from app.services import storage_service
 
 logger = logging.getLogger(__name__)
-
-
-class ProcessingTask(Task):
-    """Base task with error handling and logging"""
-
-    def on_failure(self, exc, task_id, args, kwargs, einfo):
-        # Use underscore for unused vars to pass Ruff ARG002
-        _ = (task_id, kwargs, einfo)
-        document_id = args[0]
-
-        # Define the async cleanup logic
-        async def update_status_failed():
-            async with AsyncSessionLocal() as session:
-                document = await session.get(Document, document_id)
-                if document:
-                    document.processing_status = "failed"
-                    document.processing_error = str(exc)
-                    await session.commit()
-
-        # Run the async logic from this sync context
-        try:
-            asyncio.run(update_status_failed())
-        except Exception as e:
-            logger.error(f"Failed to update error status for doc {document_id}: {e}")
-
-    def on_success(self, retval, task_id, args, kwargs):
-        # Use underscore for unused vars to pass Ruff ARG002
-        _ = (retval, args, kwargs)
-        logger.info(f"Task {task_id} completed successfully")
-
-    # Correct order: self, exc, task_id, args, kwargs, einfo
-    def on_retry(self, exc, task_id, args, kwargs, einfo):
-        _ = (args, kwargs, einfo)
-        logger.warning(f"Task {task_id} retrying: {exc}")
 
 
 @celery_app.task(base=ProcessingTask, bind=True)
@@ -87,6 +51,7 @@ async def _async_process(self, document_id: int):
         from app.tasks.chunk_document import chunk_document
 
         chunk_document.delay(document_id)
+        # chunk_document.apply_async(args=[document_id])
 
         # Success (100%)
         return {"document_id": document_id, "status": "success", "text_length": len(text)}

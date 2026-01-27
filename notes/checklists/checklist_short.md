@@ -461,7 +461,7 @@
 - [ ] Create collection with proper configuration
 - [ ] Configure HNSW index parameters
 - [ ] Test connectivity
-- [ ] Install Sentence Transformers
+- [x] Install Sentence Transformers
 - [ ] Choose embedding model (all-MiniLM-L6-v2)
 - [ ] Implement batch embedding
 - [ ] Optimize embedding performance

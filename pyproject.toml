@@ -20,7 +20,9 @@ dependencies = [
     "pypdf>=6.6.2",
     "pytest>=9.0.2",
     "python-docx>=1.2.0",
+    "qdrant-client>=1.16.2",
     "redis>=7.1.0",
+    "sentence-transformers>=5.2.2",
     "sqlmodel>=0.0.31",
     "tiktoken>=0.12.0",
 ]

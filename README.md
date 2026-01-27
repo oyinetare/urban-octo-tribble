@@ -180,9 +180,6 @@ echo $RESPONSE | jq
 # Extract the document_id for the next command
 DOC_ID=$(echo $RESPONSE | jq -r '.id')
 
-curl -X GET http://localhost:8000/api/v1/documents/$DOC_ID/status \
-  -H "Authorization: Bearer $TOKEN" | jq
-
 # loop to watch the percentage go up in real-time
 while true; do
   STATUS_RESP=$(curl -s -X GET http://localhost:8000/api/v1/documents/$DOC_ID/status -H "Authorization: Bearer $TOKEN")
@@ -195,6 +192,10 @@ while true; do
   fi
   sleep 1
 done
+
+
+curl -X GET http://localhost:8000/api/v1/documents/$DOC_ID/status \
+  -H "Authorization: Bearer $TOKEN" | jq
 
 
 
