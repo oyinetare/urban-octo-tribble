@@ -1,5 +1,4 @@
 import asyncio
-import os
 import warnings
 from collections.abc import AsyncGenerator
 from unittest.mock import MagicMock, patch
@@ -214,7 +213,7 @@ def mock_celery_tasks():
         yield {"delay": mock_delay, "apply": mock_apply}
 
 
-@pytest.fixture(scope="session", autouse=True)
-def disable_rate_limits():
-    """Environment override to disable rate limiting logic in tests."""
-    os.environ["RATE_LIMIT_ENABLED"] = "False"
+# @pytest.fixture(scope="session", autouse=True)
+# def disable_rate_limits():
+#     """Environment override to disable rate limiting logic in tests."""
+#     os.environ["RATE_LIMIT_ENABLED"] = "False"
