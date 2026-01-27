@@ -120,9 +120,9 @@ async def upload_document(
         await session.refresh(document)
 
         # Trigger background processing
-        # from app.tasks import process_document
+        from app.tasks import process_document
 
-        # task = process_document.apply_async(args=[document.id])
+        task = process_document.apply_async(args=[document.id])
 
         return DocumentUploadResponse(
             id=document.id or 0,
@@ -133,7 +133,7 @@ async def upload_document(
             storage_key=document.storage_key,
             # task tracking
             processing_status=ProcessingStatus.PROCESSING,
-            # task_id=task.id,
+            task_id=task.id,
         )
 
     except Exception as e:

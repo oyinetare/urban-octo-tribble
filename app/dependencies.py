@@ -186,5 +186,12 @@ def pagination_params(
 
 # MinIO Storage Service dependencies
 def get_storage_service(request: Request) -> StorageAdapter:
-    """Get storage service from app state."""
-    return request.app.state.storage
+    """Get storage service from app state.
+    If inside a FastAPI request, get from app.state (better for testing/overrides).
+    If called without a request (Celery), return the global instance.
+    """
+    from app.services import storage_service
+
+    if request and hasattr(request.app.state, "storage"):
+        return request.app.state.storage
+    return storage_service

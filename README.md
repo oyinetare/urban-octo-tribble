@@ -164,6 +164,10 @@ curl -X POST http://localhost:8000/api/v1/documents/upload \
   -F "title=Test" \
   -F "description=Test description" | jq
 
+# procewsing status
+curl -X GET http://localhost:8000/api/v1/documents/{docuemnt_id}/status\
+  -H "Authorization: Bearer $TOKEN" | jq
+
 # 2. Get document ID
 curl -X GET http://localhost:8000/api/v1/documents/{docuemnt_id} \
   -H "Authorization: Bearer $TOKEN" \

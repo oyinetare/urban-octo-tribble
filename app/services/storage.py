@@ -6,8 +6,11 @@ from unittest.mock import AsyncMock
 import aioboto3
 from botocore.exceptions import ClientError
 
+from app.core import get_settings
 from app.exceptions import StorageException
 from app.utility import id_generator
+
+settings = get_settings()
 
 
 class StorageAdapter(ABC):
@@ -224,3 +227,12 @@ class MinIOAdapter(StorageAdapter):
                 return True
             except ClientError:
                 return False
+
+
+storage_service = MinIOAdapter(
+    endpoint=settings.MINIO_ENDPOINT,
+    access_key=settings.MINIO_ACCESS_KEY,
+    secret_key=settings.MINIO_SECRET_KEY,
+    bucket_name=settings.MINIO_DOCUMENTS_BUCKET_NAME,
+    use_ssl=settings.MINIO_USE_SSL,
+)

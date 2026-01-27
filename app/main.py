@@ -16,7 +16,6 @@ from app.middleware import (
     security_headers_middleware,
 )
 from app.routes import auth, documents, users
-from app.services import MinIOAdapter
 
 settings = get_settings()
 
@@ -44,16 +43,11 @@ async def lifespan(app: FastAPI):
     """
     # Startup
     # Initialize storage
-    storage = MinIOAdapter(
-        endpoint=settings.MINIO_ENDPOINT,
-        access_key=settings.MINIO_ACCESS_KEY,
-        secret_key=settings.MINIO_SECRET_KEY,
-        bucket_name=settings.MINIO_DOCUMENTS_BUCKET_NAME,
-        use_ssl=settings.MINIO_USE_SSL,
-    )
-    await storage._ensure_bucket_exists()
+    from app.services import storage_service
 
-    app.state.storage = storage
+    await storage_service._ensure_bucket_exists()
+
+    app.state.storage = storage_service
     await init_db()
     await redis_service.initialize()
 

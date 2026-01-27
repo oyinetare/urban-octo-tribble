@@ -21,6 +21,7 @@ class Document(BaseModel, table=True):
     # Document metadata
     title: str = Field(max_length=255, index=True)
     description: str | None = Field(default=None, max_length=1000)
+    content: str | None = Field(default=None)
 
     # File storage
     filename: str = Field(max_length=255)
