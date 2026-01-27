@@ -26,27 +26,31 @@ class DocumentChunker:
         tokens = self.encoder.encode(text)
         total_tokens = len(tokens)
         chunks = []
-        position = 0
 
-        # Handle very short documents (less than chunk size)
+        # Handle short docs
         if total_tokens <= self.chunk_size:
             return [(text, 0, total_tokens)]
 
         start = 0
+        position = 0
+        stride = self.chunk_size - self.overlap
+
+        # TWEAK: Ensure stride is at least 1 to prevent infinite loops
+        stride = max(stride, 1)
+
         while start < total_tokens:
-            end = start + self.chunk_size
+            end = min(start + self.chunk_size, total_tokens)
             chunk_tokens = tokens[start:end]
 
             chunk_text = self.encoder.decode(chunk_tokens)
             chunks.append((chunk_text, position, len(chunk_tokens)))
 
-            position += 1
-            # Move start forward by (chunk_size - overlap)
-            start += self.chunk_size - self.overlap
-
-            # Prevent infinite loop if overlap >= chunk_size
-            if self.overlap >= self.chunk_size:
+            # If we reached the end of the tokens, stop
+            if end == total_tokens:
                 break
+
+            start += stride
+            position += 1
 
         return chunks
 

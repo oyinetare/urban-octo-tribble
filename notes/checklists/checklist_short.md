@@ -425,17 +425,17 @@
 - [x] Add indexes (document_id, position)
 - [x] Create migration
 - [x] Implement token-based chunking (tiktoken)
-- [ ] Chunk size: 500 tokens
-- [ ] Overlap: 50 tokens
-- [ ] Handle edge cases (very short/long documents)
-- [ ] Celery task: chunk_document
-- [ ] Split text into chunks
-- [ ] Save chunks to database
-- [ ] Chain to embedding task
-- [ ] Test chunking algorithm
-- [ ] Test overlap calculation
-- [ ] Test edge cases (empty doc, single sentence)
-- [ ] Verify token counts
+- [x] Chunk size: 500 tokens
+- [x] Overlap: 50 tokens
+- [x] Handle edge cases (very short/long documents)
+- [x] Celery task: chunk_document
+- [x] Split text into chunks
+- [x] Save chunks to database
+- [x] Chain to embedding task
+- [x] Test chunking algorithm
+- [x] Test overlap calculation
+- [x] Test edge cases (empty doc, single sentence)
+- [x] Verify token counts
 
 ### Done When
 - [ ] Documents split into chunks

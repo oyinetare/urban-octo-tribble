@@ -1,4 +1,4 @@
-from app.services.chunking import ChunkBuilder, ChunkRepository, chunker
+from app.services.chunking import ChunkBuilder, ChunkRepository, DocumentChunker, chunker
 from app.services.storage import MinIOAdapter, MockStorageAdapter, StorageAdapter, storage_service
 from app.services.validators import validator
 
@@ -10,5 +10,6 @@ __all__ = [
     "storage_service",
     "ChunkBuilder",
     "ChunkRepository",
+    "DocumentChunker",
     "chunker",
 ]
