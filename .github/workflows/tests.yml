@@ -57,10 +57,10 @@ jobs:
           -m "not slow"  # Skip slow tests in CI by default
 
     # Optional: Run slow tests separately with longer timeout
-    # - name: Run slow/performance tests
-    #   timeout-minutes: 3
-    #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    #   run: |
-    #     uv run --no-sync pytest -n auto \
-    #       -m "slow or performance" \
-    #       --durations=10
+    - name: Run slow/performance tests
+      timeout-minutes: 3
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        uv run --no-sync pytest -n auto \
+          -m "slow or performance" \
+          --durations=10
