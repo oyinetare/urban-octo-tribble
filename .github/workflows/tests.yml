@@ -10,6 +10,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
+        PROJECT_NAME: "urban-octo-tribble"
         DATABASE_URL: "sqlite+aiosqlite:///:memory:"
         SECRET_KEY: "ci-test-secret-key-not-for-production"
         REDIS_HOST: localhost

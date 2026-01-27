@@ -7,6 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "aioboto3>=15.5.0",
     "alembic>=1.18.0",
+    "asgiref>=3.11.0",
     "asyncpg>=0.31.0",
     "celery[redis]>=5.3.1",
     "fakeredis>=2.33.0",
@@ -16,7 +17,8 @@ dependencies = [
     "psycopg2-binary>=2.9.11",
     "pwdlib[argon2]>=0.3.0",
     "pyjwt>=2.10.1",
-    "pypdf2>=3.0.1",
+    "pypdf>=6.6.2",
+    "pytest>=9.0.2",
     "python-docx>=1.2.0",
     "redis>=7.1.0",
     "sqlmodel>=0.0.31",

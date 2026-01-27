@@ -175,12 +175,14 @@ async def test_document(session: AsyncSession, test_user: User) -> Document:
     document = Document(
         title="Test Document",
         description="Test Description",
+        content="Test Content",
         filename="test_file.pdf",
         storage_key="uploads/test_key",
         file_size=1024,
         content_type="application/pdf",
         owner_id=test_user.id,
         processing_status="pending",
+        task_id="task_id",
     )
 
     session.add(document)
