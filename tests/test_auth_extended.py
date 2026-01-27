@@ -14,12 +14,11 @@ class TestAuthenticationExtended:
         )
         assert login_response.status_code == 200
 
-        # Extract refresh token from cookies
-        cookies = login_response.cookies
-        assert "refresh_token" in cookies
+        # Update client cookies with the response from login
+        client.cookies.update(login_response.cookies)
+        assert "refresh_token" in client.cookies
 
-        # Use refresh token
-        refresh_response = await client.post("/api/v1/auth/refresh", cookies=cookies)
+        refresh_response = await client.post("/api/v1/auth/refresh")
         assert refresh_response.status_code == 200
         data = refresh_response.json()
         assert "access_token" in data
@@ -38,10 +37,10 @@ class TestAuthenticationExtended:
             "/api/v1/auth/login", data={"username": "testuser", "password": "testpassword"}
         )
 
-        # Logout
-        logout_response = await client.post(
-            "/api/v1/auth/logout", headers=auth_headers, cookies=login_response.cookies
-        )
+        # Update client cookies with the refresh token from login
+        client.cookies.update(login_response.cookies)
+
+        logout_response = await client.post("/api/v1/auth/logout", headers=auth_headers)
         assert logout_response.status_code == 200
 
     @pytest.mark.asyncio

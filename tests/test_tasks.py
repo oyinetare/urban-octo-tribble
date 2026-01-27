@@ -102,7 +102,7 @@ class TestDocumentTasks:
             assert test_document.processing_status == "failed"
             assert "MinIO Connection Timeout" in test_document.processing_error
 
-    def test_retry_logic_configuration(self):
+    async def test_retry_logic_configuration(self):
         """Verify the task is configured for retries (Synchronous)."""
         # Check retries
         assert process_document.max_retries == 3

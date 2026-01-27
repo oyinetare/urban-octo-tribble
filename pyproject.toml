@@ -17,7 +17,7 @@ dependencies = [
     "psycopg2-binary>=2.9.11",
     "pwdlib[argon2]>=0.3.0",
     "pyjwt>=2.10.1",
-    "pypdf2>=3.0.1",
+    "pypdf>=6.6.2",
     "pytest>=9.0.2",
     "python-docx>=1.2.0",
     "redis>=7.1.0",
@@ -92,24 +92,6 @@ call-non-callable = "error"
 include = ["tests/**"]
 [tool.ty.overrides.rules]
 unresolved-reference = "warn"
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-addopts = [
-    "-v",
-    "--strict-markers",
-    "--strict-config",
-    "--cov=app",
-    "--cov-report=term-missing",
-    "--cov-report=html",
-    "--cov-report=xml",
-]
-asyncio_mode = "auto"
-# Explicitly set the loop scope if using pytest-asyncio 0.23+
-asyncio_default_test_loop_scope = "function"
 
 [tool.coverage.run]
 source = ["app"]

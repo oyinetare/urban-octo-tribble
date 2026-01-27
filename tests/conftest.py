@@ -1,4 +1,3 @@
-import asyncio
 import warnings
 from collections.abc import AsyncGenerator
 from unittest.mock import MagicMock, patch
@@ -40,22 +39,22 @@ TestSessionLocal = async_sessionmaker(
 )
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create event loop and ensure engine disposal happens inside it."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
+# @pytest.fixture(scope="session")
+# def event_loop():
+#     """Create event loop and ensure engine disposal happens inside it."""
+#     loop = asyncio.get_event_loop_policy().new_event_loop()
+#     yield loop
 
-    # Run cleanup explicitly before closing
-    try:
-        # If engine wasn't disposed yet, force it here
-        loop.run_until_complete(test_engine.dispose())
+#     # Run cleanup explicitly before closing
+#     try:
+#         # If engine wasn't disposed yet, force it here
+#         loop.run_until_complete(test_engine.dispose())
 
-        pending = asyncio.all_tasks(loop)
-        if pending:
-            loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
-    finally:
-        loop.close()
+#         pending = asyncio.all_tasks(loop)
+#         if pending:
+#             loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+#     finally:
+#         loop.close()
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -106,13 +105,13 @@ async def client(session: AsyncSession, storage_mock: StorageAdapter):
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def cleanup_resources():
-    """Initialize and cleanup resources for entire test session."""
-    # Setup
+    """Initialize and cleanup resources once for the whole session."""
     await redis_service.initialize()
     yield
 
-    # Cleanup - runs after ALL tests
+    # The session-scoped loop is still open here because of your pytest.ini
     if redis_service.client:
+        # close() calls self._redis_client.aclose() which handles the pool
         await redis_service.close()
     await test_engine.dispose()
 
