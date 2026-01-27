@@ -84,5 +84,9 @@ async def _async_process(self, document_id: int):
         document.processing_status = "completed"
         await session.commit()
 
+        from app.tasks.chunk_document import chunk_document
+
+        chunk_document.delay(document_id)
+
         # Success (100%)
         return {"document_id": document_id, "status": "success", "text_length": len(text)}

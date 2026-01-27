@@ -1,7 +1,7 @@
 import io
 from abc import ABC, abstractmethod
 
-import PyPDF2
+import pypdf
 from docx import Document as DocxDocument
 
 
@@ -20,7 +20,7 @@ class PDFExtractor(TextExtractor):
         return mime_type == "application/pdf"
 
     async def extract(self, content: bytes) -> str:
-        pdf = PyPDF2.PdfReader(io.BytesIO(content))
+        pdf = pypdf.PdfReader(io.BytesIO(content))
         text = ""
         for page in pdf.pages:
             text += page.extract_text() + "\n"

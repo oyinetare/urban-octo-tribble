@@ -1,4 +1,3 @@
-import asyncio
 import warnings
 from collections.abc import AsyncGenerator
 from unittest.mock import MagicMock, patch
@@ -14,11 +13,13 @@ from app.core import get_session, redis_service, token_manager
 from app.dependencies import get_storage_service
 from app.main import app
 from app.models import Document, User
-from app.services import MockStorageAdapter, StorageAdapter
+from app.services import DocumentChunker, MockStorageAdapter, StorageAdapter
 
 # Suppress specific warnings at module level
 warnings.filterwarnings("ignore", message="coroutine.*was never awaited")
 warnings.filterwarnings("ignore", category=RuntimeWarning, module="asyncpg")
+warnings.filterwarnings("ignore", message="coroutine 'Connection._cancel' was never awaited")
+
 
 # Test database URL (use in-memory SQLite for tests)
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -40,22 +41,22 @@ TestSessionLocal = async_sessionmaker(
 )
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create event loop and ensure engine disposal happens inside it."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
+# @pytest.fixture(scope="session")
+# def event_loop():
+#     """Create event loop and ensure engine disposal happens inside it."""
+#     loop = asyncio.get_event_loop_policy().new_event_loop()
+#     yield loop
 
-    # Run cleanup explicitly before closing
-    try:
-        # If engine wasn't disposed yet, force it here
-        loop.run_until_complete(test_engine.dispose())
+#     # Run cleanup explicitly before closing
+#     try:
+#         # If engine wasn't disposed yet, force it here
+#         loop.run_until_complete(test_engine.dispose())
 
-        pending = asyncio.all_tasks(loop)
-        if pending:
-            loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
-    finally:
-        loop.close()
+#         pending = asyncio.all_tasks(loop)
+#         if pending:
+#             loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+#     finally:
+#         loop.close()
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -76,6 +77,9 @@ async def session() -> AsyncGenerator[AsyncSession, None]:
     # Drop tables
     async with test_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.drop_all)
+
+    # This helps clear the StaticPool's single connection
+    await test_engine.dispose()
 
 
 @pytest_asyncio.fixture
@@ -106,13 +110,13 @@ async def client(session: AsyncSession, storage_mock: StorageAdapter):
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def cleanup_resources():
-    """Initialize and cleanup resources for entire test session."""
-    # Setup
+    """Initialize and cleanup resources once for the whole session."""
     await redis_service.initialize()
     yield
 
-    # Cleanup - runs after ALL tests
+    # The session-scoped loop is still open here because of your pytest.ini
     if redis_service.client:
+        # close() calls self._redis_client.aclose() which handles the pool
         await redis_service.close()
     await test_engine.dispose()
 
@@ -203,6 +207,10 @@ def mock_celery_tasks():
     with (
         patch("app.tasks.document_processing.process_document.delay") as mock_delay,
         patch("app.tasks.document_processing.process_document.apply_async") as mock_apply,
+        # Patch the Celery app's connection/backend
+        patch("app.celery_app.celery_app.send_task"),
+        # Ensure update_state doesn't try to touch Redis
+        patch("celery.app.task.Task.update_state", return_value=None),
     ):
         # Configure the mock to return a dummy task object
         mock_task = MagicMock()
@@ -211,6 +219,26 @@ def mock_celery_tasks():
         mock_apply.return_value = mock_task
 
         yield {"delay": mock_delay, "apply": mock_apply}
+
+
+@pytest_asyncio.fixture
+def chunker():
+    return DocumentChunker(chunk_size=10, overlap=2)
+
+
+@pytest.fixture(autouse=True)
+def mock_redis_connection():
+    with patch("redis.asyncio.Redis.from_url") as mock:
+        mock.return_value = MagicMock()
+        yield mock
+
+
+@pytest.fixture(autouse=True)
+def mock_redis_pool():
+    """Prevent the actual Redis connection pool from ever starting."""
+    with patch("redis.asyncio.connection.ConnectionPool.from_url") as mock:
+        mock.return_value = MagicMock()
+        yield mock
 
 
 # @pytest.fixture(scope="session", autouse=True)

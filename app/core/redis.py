@@ -36,16 +36,17 @@ class RedisService:
             return
 
         try:
-            self._redis_client = redis.Redis(
+            # Use a connection pool explicitly to ensure reuse
+            pool = redis.ConnectionPool(
                 host=settings.REDIS_HOST,
                 port=settings.REDIS_PORT,
                 password=settings.REDIS_PASSWORD,
                 db=0,
                 decode_responses=True,
-                max_connections=50,  # Connection pool size
-                socket_connect_timeout=5,
-                socket_keepalive=True,
+                max_connections=20,  # Reduced for testing to prevent exhaustion
             )
+
+            self._redis_client = redis.Redis(connection_pool=pool)
 
             # Test connection
             is_connected = await cast(Awaitable[bool], self._redis_client.ping())

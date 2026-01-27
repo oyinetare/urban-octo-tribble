@@ -421,27 +421,28 @@
 **What:** Split documents into 500-token chunks with 50-token overlap
 
 ### Tasks
-- [ ] Create Chunk model (document_id, text, position, tokens, embedding_id)
-- [ ] Add indexes (document_id, position)
-- [ ] Create migration
-- [ ] Implement token-based chunking (tiktoken)
-- [ ] Chunk size: 500 tokens
-- [ ] Overlap: 50 tokens
-- [ ] Handle edge cases (very short/long documents)
-- [ ] Celery task: chunk_document
-- [ ] Split text into chunks
-- [ ] Save chunks to database
-- [ ] Chain to embedding task
-- [ ] Test chunking algorithm
-- [ ] Test overlap calculation
-- [ ] Test edge cases (empty doc, single sentence)
-- [ ] Verify token counts
+- [x] Create Chunk model (document_id, text, position, tokens, embedding_id)
+- [x] Add indexes (document_id, position)
+- [x] Create migration
+- [x] Implement token-based chunking (tiktoken)
+- [x] Chunk size: 500 tokens
+- [x] Overlap: 50 tokens
+- [x] Handle edge cases (very short/long documents)
+- [x] Celery task: chunk_document
+- [x] Split text into chunks
+- [x] Save chunks to database
+- [x] Chain to embedding task
+- [x] Test chunking algorithm
+- [x] Test overlap calculation
+- [x] Test edge cases (empty doc, single sentence)
+- [x] Verify token counts
 
 ### Done When
 - [ ] Documents split into chunks
 - [ ] Chunks saved with position and token count
 - [ ] Chunking task chains to embedding
 - [ ] Edge cases handled
+- [ ] Cleanup logic & Transaction safety
 
 ### Interview Questions You Can Answer
 - "How do you chunk documents for RAG?"

@@ -148,10 +148,10 @@ class TestAuthComprehensive:
         )
 
         # Get cookies
-        cookies = login_response.cookies
+        client.cookies.update(login_response.cookies)
 
         # Refresh token
-        response = await client.post("/api/v1/auth/refresh", cookies=cookies)
+        response = await client.post("/api/v1/auth/refresh")
         assert response.status_code == 200
 
         data = response.json()
@@ -169,12 +169,12 @@ class TestAuthComprehensive:
         """Test refresh with access token instead of refresh token."""
         from app.core import token_manager
 
-        # Create access token (wrong type)
         access_token = token_manager.create_access_token(data={"sub": "test", "scopes": ["read"]})
 
-        response = await client.post(
-            "/api/v1/auth/refresh", cookies={"refresh_token": access_token}
-        )
+        # Set cookie on the client instance instead of per-request
+        client.cookies.set("refresh_token", access_token)
+
+        response = await client.post("/api/v1/auth/refresh")
         assert response.status_code == 401
 
     @pytest.mark.asyncio
