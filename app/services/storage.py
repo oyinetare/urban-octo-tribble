@@ -200,7 +200,7 @@ class MinIOAdapter(StorageAdapter):
         """
         async with self.session.client("s3", **self.config) as s3:
             try:
-                return await s3.generate_presigned_url(
+                return s3.generate_presigned_url(
                     "get_object",
                     Params={"Bucket": self.bucket_name, "Key": object_key},
                     ExpiresIn=expires,
