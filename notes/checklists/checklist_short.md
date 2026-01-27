@@ -421,9 +421,9 @@
 **What:** Split documents into 500-token chunks with 50-token overlap
 
 ### Tasks
-- [ ] Create Chunk model (document_id, text, position, tokens, embedding_id)
-- [ ] Add indexes (document_id, position)
-- [ ] Create migration
+- [x] Create Chunk model (document_id, text, position, tokens, embedding_id)
+- [x] Add indexes (document_id, position)
+- [x] Create migration
 - [ ] Implement token-based chunking (tiktoken)
 - [ ] Chunk size: 500 tokens
 - [ ] Overlap: 50 tokens
