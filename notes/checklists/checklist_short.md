@@ -442,6 +442,7 @@
 - [ ] Chunks saved with position and token count
 - [ ] Chunking task chains to embedding
 - [ ] Edge cases handled
+- [ ] Cleanup logic & Transaction safety
 
 ### Interview Questions You Can Answer
 - "How do you chunk documents for RAG?"
