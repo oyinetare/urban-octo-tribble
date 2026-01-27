@@ -24,6 +24,7 @@ services:
     networks:
       - app_network
 
+  # Redis for token-blacklisting, caching, rate limiting..
   redis:
     image: redis:7-alpine
     container_name: urban-octo-tribble-redis
@@ -36,6 +37,28 @@ services:
       - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - app_network
+
+
+  # MinIO (Object Storage)
+  minio:
+    image: minio/minio:latest
+    container_name: urban-octo-tribble-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    # ports: # Do NOT expose in production unless needed for external debugging
+    #   - "9000:9000"  # API
+    #   - "9001:9001"  # Console
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -62,12 +85,15 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      minio:
+        condition: service_healthy
     networks:
       - app_network
 
 volumes:
   postgres_data:
   redis_data:
+  minio_data:
 
 networks:
   app_network:

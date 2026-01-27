@@ -1,4 +1,4 @@
-.PHONY: install dev-install format lint type-check test test-cov clean run migrate pre-commit help check-docker-up run-fresh gaf
+.PHONY: install dev-install format lint type-check test test-cov clean run migrate pre-commit help check-docker-up run-fresh gaf clean-install
 
 help:  ## Show this help message
 	@echo "Available commands:"
@@ -9,7 +9,7 @@ gaf: # git add . and run format code with ruff
 	uv run ruff format .
 	uv run ruff check --fix .
 	uv run pre-commit run --all-files
-	git add .
+# 	git add .
 
 install:  ## Install production dependencies
 	uv sync
@@ -17,6 +17,9 @@ install:  ## Install production dependencies
 dev-install:  ## Install all dependencies including dev tools
 	uv sync --all-extras
 	uv run pre-commit install
+
+clean-install: ## Force a Reinstallation - re-download and re-install all packages
+	uv sync --reinstall
 
 format:  ## Format code with ruff
 	uv run ruff format .
@@ -52,10 +55,10 @@ clean:  ## Clean up cache and build files
 	find . -type f -name "*.pyc" -delete
 	find . -type d -name ".pytest_cache" -exec rm -rf {} +
 	find . -type d -name ".ruff_cache" -exec rm -rf {} +
-	find . -type d -name ".mypy_cache" -exec rm -rf {} +
 	rm -rf htmlcov/
 	rm -rf .coverage
 	rm -rf .coverage*
+# 	find . -type d -name ".mypy_cache" -exec rm -rf {} +
 
 check-docker-up:
 	@docker info >/dev/null 2>&1 || (echo "Error: Docker daemon is not running." && exit 1)
@@ -64,7 +67,7 @@ run-fresh: check-docker-up  ## Run the development server with docker
 # 	uv run uvicorn app.main:app --reload
 	docker compose down -v
 	docker compose up -d
-	uv run fastapi dev
+# 	uv run fastapi dev
 
 run: check-docker-up  ## Run the development server
 # 	uv run uvicorn app.main:app --reload
@@ -96,7 +99,7 @@ db-reset:
 	uv run alembic downgrade base
 	uv run alembic upgrade head
 
-docker-up-hot-reload: check-docker-up ## Start Docker services
+docker-hot-reload: check-docker-up ## Start Docker services
 	docker compose up --build
 
 docker-up: check-docker-up ## Start Docker services

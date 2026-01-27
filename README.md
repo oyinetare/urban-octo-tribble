@@ -98,6 +98,13 @@ ___
 
 ## API Usage
 
+### Health
+```bash
+curl -X GET http://localhost:8000/health/live | jq
+
+curl -X GET http://localhost:8000/health/ready | jq
+```
+
 ### Authentication Flow
 
 ```bash
@@ -123,7 +130,7 @@ TOKEN=$(curl -c cookies.txt -s -X POST http://localhost:8000/api/v1/auth/login \
 
 ####
 # 2.1 Refresh token
-TOKEN=$(curl -b cookies.txt -s -X POST http://localhost:8000/api/v1/auth/refresh | jq -r '.access_token')
+TOKEN=$(curl -b cookies.txt -s -X POST http://localhost:8000/api/v1/v1/auth/refresh | jq -r '.access_token')
 
 # curl -b cookies.txt -X POST http://localhost:8000/api/v1/auth/refresh | jq
 
@@ -150,6 +157,13 @@ curl -X POST http://localhost:8000/api/v1/documents \
   -H "Content-Type: application/json" \
   -d '{"title": "Test Doc", "description": "Test"}' | jq
 
+# Upload document
+curl -X POST http://localhost:8000/api/v1/documents/upload \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "file=@document.txt" \
+  -F "title=Test" \
+  -F "description=Test description" | jq
+
 # 2. Get document ID
 curl -X GET http://localhost:8000/api/v1/documents/{docuemnt_id} \
   -H "Authorization: Bearer $TOKEN" \
@@ -172,7 +186,7 @@ curl -X PUT http://localhost:8000/api/v1/documents/{docuemnt_id} \
   -d '{"description": "Test update description"}' | jq
 
 # 6. share document link
-curl -X POST http://localhost:8000/api/v1/documents/share/{docuemnt_id} \
+curl -X POST http://localhost:8000/api/v1/documents/{docuemnt_id}/share \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" | jq
 ```

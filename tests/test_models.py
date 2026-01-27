@@ -49,7 +49,16 @@ class TestModels:
     @pytest.mark.asyncio
     async def test_document_model_creation(self, session, test_user):
         """Test creating document model."""
-        doc = Document(title="Model Test", description="Description", owner_id=test_user.id)
+        doc = Document(
+            title="Model Test",
+            description="Description",
+            owner_id=test_user.id,
+            storage_key="temporary_key",
+            filename="Test.pdf",
+            file_size=1024,
+            content_type="application/octet-stream",
+            status="pending",
+        )
         session.add(doc)
         await session.commit()
         await session.refresh(doc)

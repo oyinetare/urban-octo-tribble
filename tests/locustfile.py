@@ -64,8 +64,7 @@ class APIUser(HttpUser):
             headers=self.headers,
             json={
                 "title": f"Load Test Document {random.randint(1, 1000)}",
-                "content": "This is a load test document",
-                "description": "Generated during load testing",
+                "description": "This is a load test document, generated during load testing",
             },
         )
 

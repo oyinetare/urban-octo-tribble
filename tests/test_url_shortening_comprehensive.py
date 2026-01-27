@@ -9,7 +9,7 @@ class TestURLShorteningComprehensive:
     async def test_create_short_url(self, client: AsyncClient, auth_headers, test_document):
         """Test creating short URL."""
         response = await client.post(
-            f"/api/v1/documents/share/{test_document.id}", headers=auth_headers
+            f"/api/v1/documents/{test_document.id}/share", headers=auth_headers
         )
         assert response.status_code == 201
         data = response.json()
@@ -39,7 +39,7 @@ class TestURLShorteningComprehensive:
         )
         headers = {"Authorization": f"Bearer {token}"}
 
-        response = await client.post(f"/api/v1/documents/share/{test_document.id}", headers=headers)
+        response = await client.post(f"/api/v1/documents/{test_document.id}/share", headers=headers)
         assert response.status_code == 403
 
     @pytest.mark.asyncio
@@ -47,7 +47,7 @@ class TestURLShorteningComprehensive:
         """Test redirecting via short URL."""
         # Create short URL
         create_response = await client.post(
-            f"/api/v1/documents/share/{test_document.id}", headers=auth_headers
+            f"/api/v1/documents/{test_document.id}/share", headers=auth_headers
         )
         short_code = create_response.json()["short_code"]
 
@@ -67,7 +67,7 @@ class TestURLShorteningComprehensive:
         """Test click tracking."""
         # Create short URL
         create_response = await client.post(
-            f"/api/v1/documents/share/{test_document.id}", headers=auth_headers
+            f"/api/v1/documents/{test_document.id}/share", headers=auth_headers
         )
         short_code = create_response.json()["short_code"]
 

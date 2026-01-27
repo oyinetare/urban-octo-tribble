@@ -1,6 +1,7 @@
 from enum import StrEnum
 
 
+# USER
 class UserRole(StrEnum):
     ADMIN = "admin"
     MODERATOR = "moderator"
@@ -35,8 +36,16 @@ class UserTier(StrEnum):
         return mapping[self]
 
 
+# DOCUMENTS
 class SortOrder(StrEnum):
     """Sort order enumeration"""
 
     ASC = "asc"
     DESC = "desc"
+
+
+class ProcessingStatus(StrEnum):
+    PENDING = "pending"  # uploading
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"

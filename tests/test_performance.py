@@ -60,13 +60,18 @@ class TestPerformance:
         self, client: AsyncClient, auth_headers, session, test_user
     ):
         """Test database query performance with many records."""
-        # Create 100 documents in smaller batches
+        # Create 100 documents in smaller batches to avoid session issues
         for batch_num in range(5):
             documents = [
                 Document(
                     title=f"Doc {batch_num * 20 + i}",
-                    content=f"Content {batch_num * 20 + i}",
+                    description=f"Description {batch_num * 20 + i}",
                     owner_id=test_user.id,
+                    filename="test.pdf",
+                    storage_key="test/key",
+                    file_size=1024,
+                    content_type="application/pdf",
+                    processing_status="pending",  # FIXED: was 'status'
                 )
                 for i in range(20)
             ]
@@ -77,6 +82,8 @@ class TestPerformance:
         start = time.time()
         response = await client.get("/api/v1/documents?page=1&page_size=50", headers=auth_headers)
         duration = time.time() - start
+
+        print(f"\nQUERY PERFORMANCE: {duration:.2f}s")
 
         assert response.status_code == 200
         assert duration < 3.0

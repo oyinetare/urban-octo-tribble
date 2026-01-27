@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import Depends, Path, Query, Security
+from fastapi import Depends, Path, Query, Request, Security
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
@@ -16,7 +16,8 @@ from app.exceptions import (
     UserNotFoundException,
 )
 from app.models import Document, User
-from app.schemas.v1 import PaginationParams
+from app.schemas import PaginationParams
+from app.services import StorageAdapter
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/api/v1/auth/login",
@@ -181,3 +182,9 @@ def pagination_params(
 ) -> PaginationParams:
     """Dependency for pagination parameters"""
     return PaginationParams(page=page, page_size=page_size)
+
+
+# MinIO Storage Service dependencies
+def get_storage_service(request: Request) -> StorageAdapter:
+    """Get storage service from app state."""
+    return request.app.state.storage

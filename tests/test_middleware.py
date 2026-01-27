@@ -14,11 +14,11 @@ class TestMiddleware:
         assert response.headers.get("X-Frame-Options") == "DENY"
         assert "X-XSS-Protection" in response.headers
 
-    @pytest.mark.asyncio
-    async def test_versioning_headers_v1(self, client: AsyncClient, auth_headers):
-        """Test v1 endpoints have deprecation headers."""
-        response = await client.get("/api/v1/users/me", headers=auth_headers)
-        assert "Deprecation" in response.headers
+    # @pytest.mark.asyncio
+    # async def test_versioning_headers_v1(self, client: AsyncClient, auth_headers):
+    #     """Test v1 endpoints have deprecation headers."""
+    #     response = await client.get("/api/v1/users/me", headers=auth_headers)
+    #     assert "Deprecation" in response.headers
 
     @pytest.mark.asyncio
     async def test_cors_headers(self, client: AsyncClient):

@@ -215,4 +215,5 @@ cookies.txt
 
 .vscode
 
-.coverage 2
+# MinIO data (if running locally without Docker)
+minio_data/
