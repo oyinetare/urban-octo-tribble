@@ -424,7 +424,7 @@
 - [x] Create Chunk model (document_id, text, position, tokens, embedding_id)
 - [x] Add indexes (document_id, position)
 - [x] Create migration
-- [ ] Implement token-based chunking (tiktoken)
+- [x] Implement token-based chunking (tiktoken)
 - [ ] Chunk size: 500 tokens
 - [ ] Overlap: 50 tokens
 - [ ] Handle edge cases (very short/long documents)
