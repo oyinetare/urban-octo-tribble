@@ -74,6 +74,7 @@ class DocumentUploadResponse(BaseModel):
     storage_key: str
     processing_status: ProcessingStatus
     processing_error: str | None = None
+    task_id: str | None = None
 
 
 class DocumentDownloadResponse(BaseModel):
@@ -89,6 +90,7 @@ class ProcessingStatusResponse(BaseModel):
     document_id: int
     status: ProcessingStatus
     error: str | None = None
+    progress: int = 0
     task_id: str | None = None
-    task_state: str | None = None
-    task_result: dict | None = None
+    # task_state: str | None = None
+    # task_result: dict | None = None

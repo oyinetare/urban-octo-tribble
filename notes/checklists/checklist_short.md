@@ -355,10 +355,10 @@
 - [x] `GET /documents/{id}/download` - Download file from MinIO
 - [ ] Set proper Content-Type headers
 - [x] Verify ownership
-- [ ] Test file upload (PDF, DOCX, TXT)
-- [ ] Test file size limits
-- [ ] Test invalid file types
-- [ ] Test download
+- [x] Test file upload (PDF, DOCX, TXT)
+- [x] Test file size limits
+- [x] Test invalid file types
+- [x] Test download
 
 ### Done When
 - [x] Files upload to MinIO
@@ -380,33 +380,33 @@
 **What:** Background workers extract text from documents
 
 ### Tasks
-- [ ] Configure Celery with Redis broker
-- [ ] Create Celery app
-- [ ] Add worker to Docker Compose
-- [ ] Test task execution
-- [ ] PDF extractor (PyPDF2)
-- [ ] DOCX extractor (python-docx)
-- [ ] Plain text extractor
-- [ ] Markdown extractor
-- [ ] Download file from MinIO
-- [ ] Extract text based on file type
-- [ ] Save extracted text to database
-- [ ] Update document status
-- [ ] Handle errors and retries
-- [ ] `GET /documents/{id}/status` - Check processing status
-- [ ] Return progress percentage
-- [ ] Return error messages
-- [ ] Test extraction for each file type
-- [ ] Test error handling
-- [ ] Test retry logic
-- [ ] Test status updates
+- [x] Configure Celery with Redis broker
+- [x] Create Celery app
+- [x] Add worker to Docker Compose
+- [x] Test task execution
+- [x] PDF extractor (PyPDF2)
+- [x] DOCX extractor (python-docx)
+- [x] Plain text extractor
+- [x] Markdown extractor
+- [x] Download file from MinIO
+- [x] Extract text based on file type
+- [x] Save extracted text to database
+- [x] Update document status
+- [x] Handle errors and retries
+- [x] `GET /documents/{id}/status` - Check processing status
+- [x] Return progress percentage
+- [x] Return error messages
+- [x] Test extraction for each file type
+- [x] Test error handling
+- [x] Test retry logic
+- [x] Test status updates
 
 ### Done When
-- [ ] Celery worker running
-- [ ] Text extracted from all file types
-- [ ] Text saved to database
-- [ ] Status updates work
-- [ ] Error handling and retries work
+- [x] Celery worker running
+- [x] Text extracted from all file types
+- [x] Text saved to database
+- [x] Status updates work
+- [x] Error handling and retries work
 
 ### Interview Questions You Can Answer
 - "Design a document processing pipeline"

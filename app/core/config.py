@@ -6,6 +6,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
+    PROJECT_NAME: str
+
     # Database
     DATABASE_URL: str
 
@@ -35,6 +37,15 @@ class Settings(BaseSettings):
     # File Upload
     MAX_UPLOAD_SIZE: int = 10485760
     ALLOWED_EXTENSIONS: str = "pdf,txt,doc,docx,md,xlsx,pptx"
+
+    # Celery
+    CELERY_BROKER_URL: str
+    CELERY_RESULT_BACKEND: str
+    CELERY_TASK_SERIALIZER: str
+    CELERY_RESULT_SERIALIZER: str
+    CELERY_ACCEPT_CONTENT: list[str]
+    CELERY_TIMEZONE: str
+    CELERY_ENABLE_UTC: bool
 
     model_config = SettingsConfigDict(env_file=".env")
 

@@ -1,11 +1,13 @@
 import logging
 
+from celery.result import AsyncResult
 from fastapi import APIRouter, Depends, File, Response, UploadFile, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col, select
 
+from app.celery_app import celery_app
 from app.core import ProcessingStatus, SortOrder, get_session
 from app.dependencies import (
     get_current_user,
@@ -120,12 +122,15 @@ async def upload_document(
         await session.refresh(document)
 
         # Trigger background processing
-        # from app.tasks import process_document
+        from app.tasks import process_document
 
-        # task = process_document.apply_async(args=[document.id])
+        task = process_document.apply_async(args=[document.id])
+
+        document.task_id = task.id
+        await session.commit()
 
         return DocumentUploadResponse(
-            id=document.id or 0,
+            id=document.id,
             title=document.title,
             filename=document.filename,
             file_size=document.file_size,
@@ -133,7 +138,7 @@ async def upload_document(
             storage_key=document.storage_key,
             # task tracking
             processing_status=ProcessingStatus.PROCESSING,
-            # task_id=task.id,
+            task_id=task.id,
         )
 
     except Exception as e:
@@ -397,8 +402,27 @@ async def get_processing_status(
             "error": null
         }
     """
+    progress = 0
+
+    # 1. If it's already completed in DB, it's 100%
+    if document.status == ProcessingStatus.COMPLETED:
+        progress = 100
+
+    # 2. If it's processing, check Celery for the 'PROGRESS' state we set in the task
+    elif document.task_id:
+        result = AsyncResult(document.task_id, app=celery_app)
+        if result.state == "PROGRESS":
+            # This 'percent' comes from your self.update_state call in the task
+            progress = result.info.get("percent", 0)
+        elif result.state == "SUCCESS":
+            progress = 100
+        elif result.state == "FAILURE":
+            progress = 0
+
     return ProcessingStatusResponse(
         document_id=document.id,
         status=document.status,
+        progress=progress,
         error=document.processing_error,
+        task_id=document.task_id,  # Now this will be populated
     )

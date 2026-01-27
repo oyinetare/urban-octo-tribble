@@ -1,6 +1,8 @@
 import asyncio
+import os
 import warnings
 from collections.abc import AsyncGenerator
+from unittest.mock import MagicMock, patch
 
 import pytest
 import pytest_asyncio
@@ -175,15 +177,44 @@ async def test_document(session: AsyncSession, test_user: User) -> Document:
     document = Document(
         title="Test Document",
         description="Test Description",
+        content="Test Content",
         filename="test_file.pdf",
         storage_key="uploads/test_key",
         file_size=1024,
         content_type="application/pdf",
         owner_id=test_user.id,
         processing_status="pending",
+        task_id="task_id",
     )
 
     session.add(document)
     await session.commit()
     await session.refresh(document)
     return document
+
+
+@pytest.fixture(autouse=True)
+def mock_celery_tasks():
+    """
+    Globally mocks Celery task execution to prevent connection
+    attempts to Redis/Broker during tests.
+    """
+    # Replace 'app.tasks.document_processing' with the actual path
+    # where your process_document task is defined.
+    with (
+        patch("app.tasks.document_processing.process_document.delay") as mock_delay,
+        patch("app.tasks.document_processing.process_document.apply_async") as mock_apply,
+    ):
+        # Configure the mock to return a dummy task object
+        mock_task = MagicMock()
+        mock_task.id = "mock-task-id"
+        mock_delay.return_value = mock_task
+        mock_apply.return_value = mock_task
+
+        yield {"delay": mock_delay, "apply": mock_apply}
+
+
+@pytest.fixture(scope="session", autouse=True)
+def disable_rate_limits():
+    """Environment override to disable rate limiting logic in tests."""
+    os.environ["RATE_LIMIT_ENABLED"] = "False"

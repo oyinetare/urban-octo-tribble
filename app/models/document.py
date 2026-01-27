@@ -21,6 +21,7 @@ class Document(BaseModel, table=True):
     # Document metadata
     title: str = Field(max_length=255, index=True)
     description: str | None = Field(default=None, max_length=1000)
+    content: str | None = Field(default=None)
 
     # File storage
     filename: str = Field(max_length=255)
@@ -40,6 +41,7 @@ class Document(BaseModel, table=True):
         description="Status: pending, processing, completed, failed",
     )
     processing_error: str | None = Field(default=None, max_length=1000)
+    task_id: str | None = Field(default=None)
 
     # Relationships/Ownership
     owner_id: int = Field(
@@ -52,8 +54,11 @@ class Document(BaseModel, table=True):
 
     @property
     def status(self) -> ProcessingStatus:
-        """Dynamically converts the string from the DB into the ProcessingStatus enum."""
         return ProcessingStatus(self.processing_status)
+
+    @status.setter
+    def status(self, value: ProcessingStatus):
+        self.processing_status = value.value
 
     def __repr__(self):
         return f"<Document {self.id}: {self.title}>"
