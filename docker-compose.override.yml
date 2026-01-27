@@ -31,3 +31,8 @@ services:
     ports:
       - "9000:9000"  # API
       - "9001:9001"  # Console
+
+  qdrant:
+    ports:
+      - "6333:6333"
+      - "6334:6334"

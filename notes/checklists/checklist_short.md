@@ -438,11 +438,11 @@
 - [x] Verify token counts
 
 ### Done When
-- [ ] Documents split into chunks
-- [ ] Chunks saved with position and token count
-- [ ] Chunking task chains to embedding
-- [ ] Edge cases handled
-- [ ] Cleanup logic & Transaction safety
+- [x] Documents split into chunks
+- [x] Chunks saved with position and token count
+- [x] Chunking task chains to embedding
+- [x] Edge cases handled
+- [x] Cleanup logic & Transaction safety
 
 ### Interview Questions You Can Answer
 - "How do you chunk documents for RAG?"
@@ -457,7 +457,7 @@
 **What:** Generate embeddings and implement semantic search with Qdrant
 
 ### Tasks
-- [ ] Add Qdrant to Docker Compose
+- [x] Add Qdrant to Docker Compose
 - [ ] Create collection with proper configuration
 - [ ] Configure HNSW index parameters
 - [ ] Test connectivity
