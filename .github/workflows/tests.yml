@@ -22,13 +22,19 @@ jobs:
         ports: ["6333:6333"]
 
       minio:
-        image: minio/minio:latest
-        ports: ["9000:9000"]
+        # Using a specific version tag to avoid 'latest' manifest issues
+        image: bitnami/minio:2025.1.20
+        ports:
+          - 9000:9000
         env:
           MINIO_ROOT_USER: minioadmin
           MINIO_ROOT_PASSWORD: minioadmin
-          MINIO_DEFAULT_BUCKETS: documents Auto-create bucket
-        options: --health-cmd "curl -f http://localhost:9000/minio/health/live" --health-interval 10s --health-timeout 5s --health-retries 5
+          MINIO_DEFAULT_BUCKETS: documents
+        options: >-
+          --health-cmd "curl -f http://localhost:9000/minio/health/live"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     env:
         PROJECT_NAME: "urban-octo-tribble"
