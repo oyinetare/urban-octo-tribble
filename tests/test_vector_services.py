@@ -2,6 +2,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from app.core import services
 from app.services.embeddings import EmbeddingService
 from app.services.vector_store import VectorStoreService
 
@@ -114,11 +115,16 @@ class TestVectorStoreService:
         assert results[0]["score"] == 0.95
         assert results[0]["metadata"]["extra"] == "metadata"
 
-    async def test_delete_document(self, mock_qdrant):
-        service = VectorStoreService("h", 1, "test", 3)
-        mock_qdrant["async"].delete = AsyncMock()
+    @pytest.mark.asyncio
+    async def test_delete_document(self, mocker):
+        # If you are patching the async_client methods:
+        mock_delete = mocker.patch.object(
+            services.vector_store.async_client,
+            "delete",
+            new_callable=AsyncMock,  # CRITICAL: This makes it awaitable
+        )
+        mock_delete.return_value = AsyncMock()  # or the expected response object
 
-        result = await service.delete_document(document_id=99)
-
+        result = await services.vector_store.delete_document(1)
         assert result is True
-        mock_qdrant["async"].delete.assert_called_once()
+        mock_delete.assert_called_once()
