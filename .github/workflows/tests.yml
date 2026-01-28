@@ -23,7 +23,7 @@ jobs:
 
       minio:
         # Using a specific version tag to avoid 'latest' manifest issues
-        image: bitnami/minio:2025.1.20
+        image: minio/minio:latest
         ports:
           - 9000:9000
         env:
