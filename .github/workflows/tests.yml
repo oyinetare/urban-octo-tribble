@@ -9,6 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+
     env:
         PROJECT_NAME: "urban-octo-tribble"
         DATABASE_URL: "sqlite+aiosqlite:///:memory:"
@@ -65,8 +66,11 @@ jobs:
     - name: Install dependencies
       run: uv sync --group dev
 
-    - name: Run tests with coverage (single run)
-      timeout-minutes: 5
+    - name: Run Ruff Linting
+      run: uv run ruff check .
+
+    - name: Run tests with coverage
+      timeout-minutes: 10
       run: |
         uv run --no-sync pytest -n auto \
           --cov=app \
