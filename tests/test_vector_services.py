@@ -114,6 +114,7 @@ class TestVectorStoreService:
         assert results[0]["score"] == 0.95
         assert results[0]["metadata"]["extra"] == "metadata"
 
+    @pytest.mark.usefixtures()
     async def test_delete_document(self, mock_qdrant):
         """Test successful document deletion with an awaitable mock."""
         # Create a service instance with mocked clients (mock_qdrant is active via fixture)
