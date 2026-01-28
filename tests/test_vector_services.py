@@ -117,13 +117,16 @@ class TestVectorStoreService:
 
     @pytest.mark.asyncio
     async def test_delete_document(self, mocker):
-        # Patch the method on the client instance
-        # We use side_effect or return_value to ensure it doesn't return a MagicMock
+        """Test successful document deletion with an awaitable mock."""
+        # Patch the method with AsyncMock explicitly
         mock_delete = mocker.patch.object(
-            services.vector_store.async_client, "delete", new_callable=AsyncMock
+            services.vector_store.async_client,
+            "delete",
+            new_callable=AsyncMock,  # This makes the mock awaitable
         )
-        mock_delete.return_value = None  # Qdrant delete returns None/Response object
+        mock_delete.return_value = None  # Or the expected Qdrant response
 
+        # This call now succeeds because mock_delete is an AsyncMock
         result = await services.vector_store.delete_document(1)
 
         assert result is True
