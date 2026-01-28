@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from httpx import AsyncClient
@@ -31,19 +31,27 @@ class TestHealthCheck:
     @pytest.mark.asyncio
     async def test_readiness_check_success(self, client: AsyncClient):
         """Test /health/ready when dependencies are healthy."""
-        # Mock Redis ping
-        with patch.object(services.redis, "ping", new_callable=AsyncMock) as mock_redis:
-            mock_redis.return_value = True
-
-            # ALSO mock the Vector Store check (check your health endpoint logic for the exact method)
-            # Assuming your health logic calls services.vector_store.client.get_collections() or similar
-            with patch.object(
+        # 1. Mock Redis
+        with (
+            patch.object(services.redis, "ping", new_callable=AsyncMock) as mock_redis,
+            patch.object(
                 services.vector_store.async_client, "get_collections", new_callable=AsyncMock
-            ) as mock_qdrant:
-                mock_qdrant.return_value = True
+            ) as mock_qdrant,
+            patch.object(services.storage, "file_exists", new_callable=AsyncMock) as mock_storage,
+        ):
+            # Set all to return True
+            mock_redis.return_value = True
+            mock_qdrant.return_value = MagicMock()  # get_collections returns an object, not a bool
+            mock_storage.return_value = True
 
-                response = await client.get("/health/ready")
-                assert response.status_code == 200
+            response = await client.get("/health/ready")
+
+            assert response.status_code == 200
+            data = response.json()
+            assert data["status"] == "ready"
+            assert data["dependencies"]["redis"] is True
+            assert data["dependencies"]["vector_store"] is True
+            assert data["dependencies"]["storage"] is True
 
     @pytest.mark.asyncio
     async def test_readiness_check_failure(self, client: AsyncClient):
