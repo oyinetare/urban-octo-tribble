@@ -252,6 +252,8 @@ def mock_token_bucket():
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def manage_test_services():
     """Centralized service management for the entire test session."""
+    from unittest.mock import MagicMock, patch
+
     from fakeredis.aioredis import FakeRedis
 
     from app.core.services import services
@@ -261,21 +263,25 @@ async def manage_test_services():
     RedisService._instance = None
     test_redis = RedisService()
     test_redis._redis_client = FakeRedis(decode_responses=True)
-
-    # 3. Inject into container
     services.redis = test_redis
 
-    # 2. Initialize other non-mocked services
-    await services.init()
+    # 2. MOCK QDRANT CLIENTS
+    # We mock both because your service uses Sync for init and Async for ops
+    with (
+        patch("app.services.vector_store.QdrantClient") as mock_sync_qdrant,
+        patch("app.services.vector_store.AsyncQdrantClient"),
+    ):
+        # Prevent _ensure_collection_exists from crashing by mocking get_collections
+        mock_sync_qdrant.return_value.get_collections.return_value = MagicMock(collections=[])
+
+        # 3. Now it's safe to initialize
+        await services.init()
 
     yield
 
-    # 3. Teardown
+    # 4. Teardown
     if services.redis:
         await services.redis.close()
-    if services.vector_store:
-        # Close Qdrant async client
-        await services.vector_store.async_client.close()
 
 
 # Add this fixture to your conftest.py
