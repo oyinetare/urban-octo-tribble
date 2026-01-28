@@ -22,13 +22,25 @@ jobs:
         ports: ["6333:6333"]
 
       minio:
-        image: bitnami/minio:rolling
-        ports: ["9000:9000"]
+        image: minio/minio:latest
+        ports:
+          - 9000:9000
         env:
           MINIO_ROOT_USER: minioadmin
           MINIO_ROOT_PASSWORD: minioadmin
-          MINIO_DEFAULT_BUCKETS: documents Auto-create bucket
-        options: --health-cmd "curl -f http://localhost:9000/minio/health/live" --health-interval 10s --health-timeout 5s --health-retries 5
+        options: >-
+          --health-cmd "curl -f http://localhost:9000/minio/health/live"
+        # The official Minio image needs 'server /data' passed as the command
+        # In GHA, we can put it right after the image name like this:
+
+      # minio:
+      #   image: bitnami/minio:rolling
+      #   ports: ["9000:9000"]
+      #   env:
+      #     MINIO_ROOT_USER: minioadmin
+      #     MINIO_ROOT_PASSWORD: minioadmin
+      #     MINIO_DEFAULT_BUCKETS: documents Auto-create bucket
+      #   options: --health-cmd "curl -f http://localhost:9000/minio/health/live" --health-interval 10s --health-timeout 5s --health-retries 5
 
     env:
         PROJECT_NAME: "urban-octo-tribble"
