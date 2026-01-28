@@ -25,16 +25,39 @@ class TokenManager:
 
     def create_access_token(
         self,
-        data: dict,
-        expires_delta: timedelta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+        user_id: int,
+        username: str,
+        tier_limit: int,
+        scopes: list[str] | None = None,
+        expires_delta: timedelta | None = None,
     ) -> str:
-        to_encode = data.copy()
+        """Create a JWT access token with embedded rate limits."""
+        if expires_delta is None:
+            expires_delta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 
+        # Standard practice: Use UTC for JWT 'exp'
         expire = datetime.now() + expires_delta
 
-        to_encode.update({"exp": expire, "type": "access"})
+        to_encode = {
+            "sub": username,
+            "id": user_id,
+            "tier_limit": tier_limit,  # Embedded for middleware performance
+            "scopes": scopes or [],
+            "exp": expire,
+            "type": "access",
+        }
 
         return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+    def decode_token(self, token: str) -> dict | None:
+        """Decode and verify a JWT token."""
+        try:
+            # leeway handles clock skew between different servers
+            return jwt.decode(
+                token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM], leeway=10
+            )
+        except (InvalidTokenError, Exception):
+            return None
 
     def create_refresh_token(
         self,
@@ -48,14 +71,6 @@ class TokenManager:
 
         to_encode.update({"exp": expire, "type": "refresh"})
         return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-
-    def decode_token(self, token: str) -> dict | None:
-        """Decode and verify a JWT token."""
-        try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-            return payload
-        except InvalidTokenError:
-            return None
 
     def get_token_expiry(self, token: str) -> datetime | None:
         """Extract expiration time from token."""

@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, status
@@ -5,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
-from app.core import get_settings, redis_service
+from app.core import get_settings, services
 from app.exceptions import AppException
 from app.middleware import (
     IdempotencyMiddleware,
@@ -43,18 +44,16 @@ async def lifespan(app: FastAPI):
     """
     # Startup
     # Initialize storage
-    from app.services import storage_service
 
-    await storage_service._ensure_bucket_exists()
+    await services.init()
 
-    app.state.storage = storage_service
     await init_db()
-    await redis_service.initialize()
 
     yield
 
     # Shutdown
-    await redis_service.close()
+    if services.redis:
+        await services.redis.close()
 
 
 app = FastAPI(
@@ -161,34 +160,54 @@ async def liveness_check():
     return {"status": "alive"}
 
 
-@app.get("/health/ready", tags=["Health"])
+@app.get("/health/ready")
 async def readiness_check():
     """
-    Readiness probe: Tells orchestrators if the app is ready to serve traffic.
-    If this fails, traffic is stopped but the container is NOT restarted.
+    Comprehensive Readiness probe for all infrastructure dependencies.
+    Returns 200 if all are ready, 503 if any are down.
     """
-    # 1. Check Redis
-    redis_ok = await redis_service.ping()
 
-    # 2. Check Database (Recommended 2026 practice)
-    # Example: if using SQLAlchemy/SQLModel
-    # db_ok = await db_service.check_connection()
-    db_ok = True  # Placeholder for your logic
+    # 1. Define internal check logic
+    async def check_redis():
+        return await services.redis.ping() if services.redis else False
 
-    if not redis_ok or not db_ok:
-        return JSONResponse(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            content={
-                "status": "unready",
-                "services": {
-                    "redis": "ok" if redis_ok else "down",
-                    "database": "ok" if db_ok else "down",
-                },
-                "environment": settings.ENVIRONMENT,
-            },
+    async def check_storage():
+        # MinIO/S3 check using the bucket existence check
+        return (
+            await services.storage.file_exists("health-check-sentinel")
+            if services.storage
+            else False
         )
 
-    return {"status": "ready", "services": {"redis": "ok", "database": "ok"}}
+    async def check_qdrant():
+        if not services.vector_store:
+            return False
+        try:
+            # Check connection to the specific collection
+            return await services.vector_store.async_client.get_collections() is not None
+        except Exception:
+            return False
+
+    # 2. Run all checks in parallel for performance
+    redis_ok, storage_ok, qdrant_ok = await asyncio.gather(
+        check_redis(), check_storage(), check_qdrant(), return_exceptions=True
+    )
+
+    # 3. Aggregate results (convert potential exceptions to False)
+    health_status = {
+        "redis": redis_ok is True,
+        "storage": storage_ok is True,
+        "vector_store": qdrant_ok is True,
+        "database": True,  # Replace with actual DB ping if needed
+    }
+
+    # 4. Determine overall readiness
+    is_ready = all(health_status.values())
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK if is_ready else status.HTTP_503_SERVICE_UNAVAILABLE,
+        content={"status": "ready" if is_ready else "unready", "dependencies": health_status},
+    )
 
 
 # --- ROUTERS ---

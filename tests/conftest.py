@@ -9,8 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel
 
-from app.core import get_session, get_settings, redis_service, token_manager
-from app.dependencies import get_storage_service
+from app.core import get_session, get_settings, services, token_manager
 from app.main import app
 from app.models import Document, User
 from app.services import DocumentChunker, MockStorageAdapter, StorageAdapter
@@ -43,24 +42,6 @@ TestSessionLocal = async_sessionmaker(
 )
 
 
-# @pytest.fixture(scope="session")
-# def event_loop():
-#     """Create event loop and ensure engine disposal happens inside it."""
-#     loop = asyncio.get_event_loop_policy().new_event_loop()
-#     yield loop
-
-#     # Run cleanup explicitly before closing
-#     try:
-#         # If engine wasn't disposed yet, force it here
-#         loop.run_until_complete(test_engine.dispose())
-
-#         pending = asyncio.all_tasks(loop)
-#         if pending:
-#             loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
-#     finally:
-#         loop.close()
-
-
 @pytest_asyncio.fixture(scope="function")
 async def session() -> AsyncGenerator[AsyncSession, None]:
     """Create test database session with guaranteed cleanup."""
@@ -89,38 +70,54 @@ async def storage_mock():
     return MockStorageAdapter()
 
 
+# tests/conftest.py
 @pytest_asyncio.fixture(scope="function")
 async def client(session: AsyncSession, storage_mock: StorageAdapter):
-    """Create test client with database and storage overrides."""
+    from fakeredis.aioredis import FakeRedis
 
-    # Define async overrides to match the expected signature of the dependencies
+    from app.core.services import services
+    from app.services.redis_service import RedisService
+
+    # 1. HARD RESET the Singleton for every test
+    RedisService._instance = None
+    test_redis = RedisService()
+    test_redis._redis_client = FakeRedis(decode_responses=True)
+
+    # 2. Re-inject into the global container
+    services.redis = test_redis
+    services.storage = storage_mock
+    # services.embedding is already mocked session-wide, so it's fine
+
+    # 3. Ensure all internal state is wiped
+    await services.init()
+    if services.redis.client:
+        await services.redis.client.flushall()
+
+    # 4. Standard dependency overrides
     async def override_get_session():
         yield session
 
-    async def override_get_storage():
-        yield storage_mock
-
     app.dependency_overrides[get_session] = override_get_session
-    app.dependency_overrides[get_storage_service] = override_get_storage
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as ac:
-        try:
-            yield ac
-        finally:
-            app.dependency_overrides.clear()
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://testserver",
+        follow_redirects=False,  # Keep False for URL tests
+    ) as ac:
+        yield ac
+        app.dependency_overrides.clear()
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def cleanup_resources():
-    """Initialize and cleanup resources once for the whole session."""
-    await redis_service.initialize()
+    """Initialize the Service Container for tests."""
+    # Force a 'testing' state if you added that to your init logic
+    await services.init()
     yield
-
-    # The session-scoped loop is still open here because of your pytest.ini
-    if redis_service.client:
-        # close() calls self._redis_client.aclose() which handles the pool
-        await redis_service.close()
-    await test_engine.dispose()
+    if services.redis:
+        await services.redis.close()
+    if services.vector_store:
+        await services.vector_store.async_client.close()
 
 
 @pytest_asyncio.fixture
@@ -130,7 +127,8 @@ async def test_user(session: AsyncSession) -> User:
         email="test@example.com",
         username="testuser",
         hashed_password=token_manager.get_password_hash("testpassword"),
-        role="user",
+        role_name="user",  # Explicit column mapping
+        tier_name="free",  # Explicit column mapping
         is_active=True,
     )
     session.add(user)
@@ -146,7 +144,8 @@ async def admin_user(session: AsyncSession) -> User:
         email="admin@example.com",
         username="admin",
         hashed_password=token_manager.get_password_hash("adminpassword"),
-        role="admin",
+        role_name="admin",  # Explicit column mapping
+        tier_name="pro",  # Give admins a higher tier
         is_active=True,
     )
     session.add(admin)
@@ -157,9 +156,11 @@ async def admin_user(session: AsyncSession) -> User:
 
 @pytest_asyncio.fixture
 async def auth_headers(test_user: User) -> dict:
-    """Get authentication headers for test user."""
     token = token_manager.create_access_token(
-        data={"sub": test_user.username, "scopes": ["read", "write"]}
+        user_id=test_user.id,
+        username=test_user.username,
+        tier_limit=test_user.tier.limit,
+        scopes=test_user.role.scopes,
     )
     return {"Authorization": f"Bearer {token}"}
 
@@ -168,7 +169,10 @@ async def auth_headers(test_user: User) -> dict:
 async def admin_headers(admin_user: User) -> dict:
     """Get authentication headers for admin user."""
     token = token_manager.create_access_token(
-        data={"sub": admin_user.username, "scopes": ["admin", "read", "write"]}
+        user_id=admin_user.id,
+        username=admin_user.username,
+        tier_limit=100,  # Match admin/pro tier
+        scopes=["admin", "read", "write"],
     )
     return {"Authorization": f"Bearer {token}"}
 
@@ -231,20 +235,6 @@ def chunker():
 
 
 @pytest.fixture(autouse=True)
-def mock_rate_limiter():
-    """
-    Prevents the rate limiter from actually hitting Redis and
-    allows us to control the 429 responses in tests.
-    """
-    # Adjust this path to where your RateLimitMiddleware or
-    # dependency check lives (e.g., app.middleware.rate_limit)
-    with patch("app.middleware.rate_limit.rate_limit_middleware") as mock_check:
-        # Default to allowing all requests
-        mock_check.return_value = False
-        yield mock_check
-
-
-@pytest.fixture(autouse=True)
 def mock_token_bucket():
     """
     Mocks the TokenBucket consume method to prevent real Redis interaction
@@ -257,19 +247,93 @@ def mock_token_bucket():
         yield mock_consume
 
 
-@pytest.fixture(autouse=True)
-def mock_redis_connection():
-    with patch("redis.asyncio.Redis.from_url") as mock:
-        mock.return_value = MagicMock()
+@pytest_asyncio.fixture(scope="session", autouse=True)
+async def manage_test_services():
+    """Centralized service management for the entire test session."""
+    from fakeredis.aioredis import FakeRedis
+
+    from app.core.services import services
+    from app.services.redis_service import RedisService
+
+    # 1. Setup Redis Singleton with FakeRedis
+    RedisService._instance = None
+    test_redis = RedisService()
+    test_redis._redis_client = FakeRedis(decode_responses=True)
+
+    # 3. Inject into container
+    services.redis = test_redis
+
+    # 2. Initialize other non-mocked services
+    await services.init()
+
+    yield
+
+    # 3. Teardown
+    if services.redis:
+        await services.redis.close()
+    if services.vector_store:
+        # Close Qdrant async client
+        await services.vector_store.async_client.close()
+
+
+# Add this fixture to your conftest.py
+@pytest.fixture(scope="session", autouse=True)
+def mock_embedding_service():
+    """Stop sentence-transformers from loading during tests."""
+    with patch("app.services.embeddings.EmbeddingService") as mock:
+        # Mock the dimension return value
+        mock_instance = mock.return_value
+        mock_instance.get_embedding_dimension.return_value = 384
+        # Mock the batch return (return empty lists or zeros)
+        mock_instance.embed_batch.return_value = [[0.0] * 384]
         yield mock
 
 
-@pytest.fixture(autouse=True)
-def mock_redis_pool():
-    """Prevent the actual Redis connection pool from ever starting."""
-    with patch("redis.asyncio.connection.ConnectionPool.from_url") as mock:
-        mock.return_value = MagicMock()
-        yield mock
+# @pytest.fixture(scope="session")
+# def event_loop():
+#     """Create event loop and ensure engine disposal happens inside it."""
+#     loop = asyncio.get_event_loop_policy().new_event_loop()
+#     yield loop
+
+#     # Run cleanup explicitly before closing
+#     try:
+#         # If engine wasn't disposed yet, force it here
+#         loop.run_until_complete(test_engine.dispose())
+
+#         pending = asyncio.all_tasks(loop)
+#         if pending:
+#             loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+#     finally:
+#         loop.close()
+
+
+# @pytest.fixture(autouse=True)
+# def mock_redis_pool():
+#     """Prevent the actual Redis connection pool from ever starting."""
+#     with patch("redis.asyncio.connection.ConnectionPool.from_url") as mock:
+#         mock.return_value = MagicMock()
+#         yield mock
+
+
+# @pytest.fixture(autouse=True)
+# def mock_redis_connection():
+#     with patch("redis.asyncio.Redis.from_url") as mock:
+#         mock.return_value = MagicMock()
+#         yield mock
+
+
+# @pytest.fixture(autouse=True)
+# def mock_rate_limiter():
+#     """
+#     Prevents the rate limiter from actually hitting Redis and
+#     allows us to control the 429 responses in tests.
+#     """
+#     # Adjust this path to where your RateLimitMiddleware or
+#     # dependency check lives (e.g., app.middleware.rate_limit)
+#     with patch("app.middleware.rate_limit.rate_limit_middleware") as mock_check:
+#         # Default to allowing all requests
+#         mock_check.return_value = False
+#         yield mock_check
 
 
 # @pytest_asyncio.fixture(scope="session", autouse=True)

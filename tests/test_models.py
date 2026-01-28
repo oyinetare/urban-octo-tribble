@@ -42,7 +42,7 @@ class TestModels:
         """Test user tier limits."""
         from app.core.constants import UserTier
 
-        assert UserTier.FREE.limit == 10
+        assert UserTier.FREE.limit == 20
         assert UserTier.PAID.limit == 100
         assert UserTier.ENTERPRISE.limit == 1000
 
@@ -97,7 +97,7 @@ class TestModels:
         """Test user tier rate limits."""
         from app.core.constants import UserTier
 
-        assert UserTier.FREE.limit == 10
+        assert UserTier.FREE.limit == 20
         assert UserTier.PAID.limit == 100
         assert UserTier.ENTERPRISE.limit == 1000
 

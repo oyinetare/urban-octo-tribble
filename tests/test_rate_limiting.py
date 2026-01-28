@@ -82,9 +82,18 @@ class TestRateLimiting:
 
         # Get tokens for both users
         token1 = token_manager.create_access_token(
-            data={"sub": test_user.username, "scopes": ["read"]}
+            user_id=test_user.id,  # or a dummy int like 1
+            username=test_user.username,
+            tier_limit=20,
+            scopes=["read"],
         )
-        token2 = token_manager.create_access_token(data={"sub": user2.username, "scopes": ["read"]})
+
+        token2 = token_manager.create_access_token(
+            user_id=user2.id,  # or a dummy int like 1
+            username=user2.username,
+            tier_limit=20,
+            scopes=["read", "write"],
+        )
 
         headers1 = {"Authorization": f"Bearer {token1}"}
         headers2 = {"Authorization": f"Bearer {token2}"}
@@ -177,16 +186,15 @@ class TestTokenBucket:
     @pytest.mark.asyncio
     async def test_token_bucket_fail_open(self):
         """Test that rate limiter fails open when Redis unavailable."""
-        from app.core import redis_service
+        from app.core.services import services
         from app.middleware.rate_limit import TokenBucket
 
-        # If Redis is not available, should allow requests
-        bucket = TokenBucket(capacity=1, refill_rate=0.1)
+        # Force redis to be unavailable
+        services.redis = None  # Or mock its is_available property to False
 
-        # Even if over limit, should allow if Redis down
-        if not redis_service.is_available:
-            allowed, info = await bucket.consume(user_id=1, tokens=100)
-            assert allowed  # Fails open
+        bucket = TokenBucket(capacity=1, refill_rate=0.1)
+        allowed, info = await bucket.consume(user_id=1, tokens=100)
+        assert allowed is True
 
 
 # ============================================================================

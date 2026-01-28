@@ -1,11 +1,11 @@
 from typing import Annotated
 
-from fastapi import Depends, Path, Query, Request, Security
+from fastapi import Depends, Path, Query, Security
 from fastapi.security import OAuth2PasswordBearer, SecurityScopes
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from app.core import get_session, redis_service, token_manager
+from app.core import get_session, services, token_manager
 from app.exceptions import (
     CredentialsException,
     DocumentNotFoundException,
@@ -17,7 +17,7 @@ from app.exceptions import (
 )
 from app.models import Document, User
 from app.schemas import PaginationParams
-from app.services import StorageAdapter
+from app.services.redis_service import RedisService
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/api/v1/auth/login",
@@ -29,16 +29,62 @@ oauth2_scheme = OAuth2PasswordBearer(
     },
 )
 
+# Service dependencies
+
+
+async def get_redis_service():
+    """Get the initialized Redis service from the container."""
+    if not services.redis:
+        await services.init()
+    return services.redis
+
+
+async def get_embedding_service():
+    """Get the initialized Embedding service from the container."""
+    if not services.embedding:
+        await services.init()
+    return services.embedding
+
+
+async def get_vector_service():
+    """Get the initialized Vector Store service from the container."""
+    if not services.vector_store:
+        await services.init()
+    return services.vector_store
+
+
+# MinIO Storage Service dependencies
+async def get_storage_service():
+    """Get storage service from app state.
+    Get the initialized Storage service from the container.
+    If inside a FastAPI request, get from app.state (better for testing/overrides).
+    If called without a request (Celery), return the global instance.
+    """
+    if not services.storage:
+        await services.init()
+    return services.storage
+
+
+async def get_services():
+    """Returns the full initialized service container."""
+    if not (services.redis and services.storage):
+        await services.init()
+    return services
+
+
+#########
+
 
 # Dependency for protected routes with scopes support
 async def get_current_user(
     security_scopes: SecurityScopes,
     token: str = Depends(oauth2_scheme),
     session: AsyncSession = Depends(get_session),
+    redis: RedisService = Depends(get_redis_service),
 ) -> User:
     """Get the current authenticated user from token and verify scopes."""
     # Check if token is blacklisted
-    if await redis_service.is_token_blacklisted(token):
+    if await redis.is_token_blacklisted(token):
         raise CredentialsException()
 
     # Decode token
@@ -80,10 +126,11 @@ async def get_current_user(
 async def get_current_active_user(
     token: str = Depends(oauth2_scheme),
     session: AsyncSession = Depends(get_session),
+    redis: RedisService = Depends(get_redis_service),
 ) -> User:
     """Get the current authenticated user without scope verification."""
     # Check if token is blacklisted
-    if await redis_service.is_token_blacklisted(token):
+    if await redis.is_token_blacklisted(token):
         raise CredentialsException()
 
     # Decode token
@@ -182,16 +229,3 @@ def pagination_params(
 ) -> PaginationParams:
     """Dependency for pagination parameters"""
     return PaginationParams(page=page, page_size=page_size)
-
-
-# MinIO Storage Service dependencies
-def get_storage_service(request: Request) -> StorageAdapter:
-    """Get storage service from app state.
-    If inside a FastAPI request, get from app.state (better for testing/overrides).
-    If called without a request (Celery), return the global instance.
-    """
-    from app.services import storage_service
-
-    if request and hasattr(request.app.state, "storage"):
-        return request.app.state.storage
-    return storage_service

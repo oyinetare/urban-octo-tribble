@@ -3,7 +3,7 @@ from io import BytesIO
 import pytest
 from httpx import AsyncClient
 
-from app.core import redis_service
+from app.core import services
 
 
 class TestInputValidation:
@@ -314,13 +314,14 @@ class TestErrorResponses:
             email="other@example.com",
             username="otheruser",
             hashed_password=token_manager.get_password_hash("password"),
-            role="user",
+            role_name="user",
+            tier_name="free",
         )
         session.add(other_user)
         await session.commit()
 
         token = token_manager.create_access_token(
-            data={"sub": other_user.username, "scopes": ["read"]}
+            user_id=other_user.id, username=other_user.username, tier_limit=20, scopes=["read"]
         )
         headers = {"Authorization": f"Bearer {token}"}
 
@@ -429,7 +430,7 @@ class TestIdempotency:
             json={"title": "Test 2", "description": "Description 2"},
         )
 
-        if redis_service.is_available:
+        if services.redis.is_available:
             pass  # Might return 422 for body mismatch
 
     @pytest.mark.asyncio

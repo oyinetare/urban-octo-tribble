@@ -121,15 +121,20 @@ class TestInputValidation:
             email="other@example.com",
             username="otheruser",
             hashed_password=token_manager.get_password_hash("password"),
-            role="user",
+            role_name="user",
+            tier_name="free",
         )
         session.add(other_user)
         await session.commit()
 
         # Get token for other user
         token = token_manager.create_access_token(
-            data={"sub": other_user.username, "scopes": ["read", "write"]}
+            user_id=other_user.id,
+            username=other_user.username,
+            tier_limit=20,
+            scopes=["read", "write"],
         )
+
         headers = {"Authorization": f"Bearer {token}"}
 
         response = await client.get(f"/api/v1/documents/{test_document.id}", headers=headers)

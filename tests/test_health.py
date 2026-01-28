@@ -3,6 +3,8 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from httpx import AsyncClient
 
+from app.core.services import services
+
 
 class TestHealthCheck:
     """Test updated health check endpoints (Liveness and Readiness)."""
@@ -28,30 +30,30 @@ class TestHealthCheck:
 
     @pytest.mark.asyncio
     async def test_readiness_check_success(self, client: AsyncClient):
-        """
-        Test /health/ready when dependencies are healthy.
-        Mock redis_service.ping to return True.
-        """
-        with patch("app.core.redis_service.ping", new_callable=AsyncMock) as mock_ping:
+        """Test /health/ready when dependencies are healthy."""
+        # 1. Patch the instance inside the services container
+        with patch.object(services.redis, "ping", new_callable=AsyncMock) as mock_ping:
             mock_ping.return_value = True
 
             response = await client.get("/health/ready")
+
             assert response.status_code == 200
             data = response.json()
             assert data["status"] == "ready"
-            assert data["services"]["redis"] == "ok"
+            # 2. Match your new key 'dependencies' and boolean value
+            assert data["dependencies"]["redis"] is True
 
     @pytest.mark.asyncio
     async def test_readiness_check_failure(self, client: AsyncClient):
-        """
-        Test /health/ready when Redis is down.
-        Must return 503 Service Unavailable.
-        """
-        with patch("app.core.redis_service.ping", new_callable=AsyncMock) as mock_ping:
+        """Test /health/ready when Redis is down."""
+        # 1. Patch the instance inside the services container
+        with patch.object(services.redis, "ping", new_callable=AsyncMock) as mock_ping:
             mock_ping.return_value = False
 
             response = await client.get("/health/ready")
+
             assert response.status_code == 503
             data = response.json()
             assert data["status"] == "unready"
-            assert data["services"]["redis"] == "down"
+            # 2. Match your new key 'dependencies' and boolean value
+            assert data["dependencies"]["redis"] is False

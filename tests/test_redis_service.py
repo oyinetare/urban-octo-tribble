@@ -4,7 +4,7 @@ import pytest
 import pytest_asyncio
 from fakeredis.aioredis import FakeRedis
 
-from app.core.redis import RedisService
+from app.services import RedisService
 
 
 @pytest.fixture(autouse=True)

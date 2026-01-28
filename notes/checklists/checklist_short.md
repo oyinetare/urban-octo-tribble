@@ -462,10 +462,10 @@
 - [ ] Configure HNSW index parameters
 - [x] Test connectivity
 - [x] Install Sentence Transformers
-- [ ] Choose embedding model (all-MiniLM-L6-v2)
-- [ ] Implement batch embedding
-- [ ] Optimize embedding performance
-- [ ] Celery task: embed_chunks
+- [x] Choose embedding model (all-MiniLM-L6-v2)
+- [x] Implement batch embedding
+- [x] Optimize embedding performance
+- [x] Celery task: embed_chunks
 - [ ] Generate embeddings in batches
 - [ ] Store vectors in Qdrant
 - [ ] Store embedding metadata

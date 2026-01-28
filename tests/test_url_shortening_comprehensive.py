@@ -26,17 +26,22 @@ class TestURLShorteningComprehensive:
 
         # Create another user
         other_user = User(
-            email="other@test.com",
+            email="other@example.com",
             username="otheruser",
             hashed_password=token_manager.get_password_hash("password"),
-            role="user",
+            role_name="user",
+            tier_name="free",
         )
         session.add(other_user)
         await session.commit()
 
         token = token_manager.create_access_token(
-            data={"sub": other_user.username, "scopes": ["read", "write"]}
+            user_id=other_user.id,
+            username=other_user.username,
+            tier_limit=20,
+            scopes=["read", "write"],
         )
+
         headers = {"Authorization": f"Bearer {token}"}
 
         response = await client.post(f"/api/v1/documents/{test_document.id}/share", headers=headers)
@@ -64,24 +69,20 @@ class TestURLShorteningComprehensive:
 
     @pytest.mark.asyncio
     async def test_short_url_click_tracking(self, client: AsyncClient, auth_headers, test_document):
-        """Test click tracking."""
-        # Create short URL
-        create_response = await client.post(
+        # 1. Create
+        create_res = await client.post(
             f"/api/v1/documents/{test_document.id}/share", headers=auth_headers
         )
-        short_code = create_response.json()["short_code"]
+        short_code = create_res.json()["short_code"]
 
-        # Click 3 times
+        # 2. Click (The route increments DB, not Redis)
         for _ in range(3):
-            await client.get(f"/d/{short_code}", follow_redirects=False)
+            await client.get(f"/d/{short_code}")
 
-        # Check stats
-        stats_response = await client.get(
-            f"/api/v1/documents/{short_code}/stats", headers=auth_headers
-        )
-        assert stats_response.status_code == 200
-        data = stats_response.json()
-        assert data["clicks"] == 3
+        # 3. Check Stats (Ensure this route fetches from DB)
+        stats_res = await client.get(f"/api/v1/documents/{short_code}/stats", headers=auth_headers)
+        assert stats_res.status_code == 200
+        assert stats_res.json()["clicks"] == 3
 
     @pytest.mark.asyncio
     async def test_get_stats_nonexistent(self, client: AsyncClient, auth_headers):
