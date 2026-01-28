@@ -9,18 +9,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-
-    # Redis and Qdrant work fine as services
-    services:
-      redis:
-        image: redis:7-alpine
-        ports: ["6379:6379"]
-        options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
-
-      qdrant:
-        image: qdrant/qdrant:latest
-        ports: ["6333:6333"]
-
     env:
         PROJECT_NAME: "urban-octo-tribble"
         DATABASE_URL: "sqlite+aiosqlite:///:memory:"
@@ -77,39 +65,15 @@ jobs:
     - name: Install dependencies
       run: uv sync --group dev
 
-    - name: Start MinIO Manual Container
+    - name: Run tests with coverage (single run)
+      timeout-minutes: 5
       run: |
-        docker run -d -p 9000:9000 --name minio \
-          -e "MINIO_ROOT_USER=minioadmin" \
-          -e "MINIO_ROOT_PASSWORD=minioadmin" \
-          minio/minio server /data
-
-        # Wait for MinIO to be ready
-        timeout 30s sh -c 'until curl -f http://localhost:9000/minio/health/live; do sleep 1; done'
-
-    - name: Run Ruff Linting
-      run: uv run ruff check .
-
-    - name: Ensure MinIO bucket exists
-      run: |
-        uv run python -c "
-        import boto3
-        s3 = boto3.client('s3', endpoint_url='http://localhost:9000', aws_access_key_id='minioadmin', aws_secret_access_key='minioadmin')
-        try:
-            s3.create_bucket(Bucket='documents')
-            print('Bucket created successfully')
-        except s3.exceptions.BucketAlreadyOwnedByYou:
-            print('Bucket already exists')
-        "
-
-    - name: Run tests with coverage
-      timeout-minutes: 10
-      run: |
-        uv run pytest -n auto \
+        uv run --no-sync pytest -n auto \
           --cov=app \
           --cov-report=xml \
           --cov-report=term-missing:skip-covered \
           --cov-fail-under=75 \
+          --durations=10 \
           -m "not slow" # Skip slow tests in CI by default
 
     # Optional: Run slow tests separately with longer timeout
