@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel
 
-from app.core import get_settings, services, token_manager
+from app.core import get_settings, token_manager
 from app.main import app
 from app.models import Document, User
 from app.services import DocumentChunker, MockStorageAdapter
@@ -112,14 +112,31 @@ async def client(session: AsyncSession, storage_mock):
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def cleanup_resources():
-    """Initialize the Service Container for tests."""
-    # Force a 'testing' state if you added that to your init logic
-    await services.init()
-    yield
+    """Initialize the Service Container for tests and mock external connections."""
+    from unittest.mock import MagicMock, patch
+
+    from app.core.services import services
+
+    # Patch the clients where VectorStoreService imports them
+    with (
+        patch("app.services.vector_store.QdrantClient") as mock_sync_client,
+        patch("app.services.vector_store.AsyncQdrantClient"),
+    ):
+        # Mock get_collections().collections to return an empty list
+        # so _ensure_collection_exists doesn't crash
+        mock_sync_client.return_value.get_collections.return_value = MagicMock(collections=[])
+
+        await services.init()
+        yield
+
+    # Teardown logic
     if services.redis:
         await services.redis.close()
     if services.vector_store:
-        await services.vector_store.async_client.close()
+        # Use getattr to safely check for the client in case init failed
+        async_client = getattr(services.vector_store, "async_client", None)
+        if async_client:
+            await async_client.close()
 
 
 @pytest_asyncio.fixture
