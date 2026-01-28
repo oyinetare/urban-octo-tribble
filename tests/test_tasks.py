@@ -75,28 +75,20 @@ class TestDocumentTasks:
 
     async def test_on_failure_updates_db(self, session, test_document, mock_db_factory):
         """Test the Celery on_failure handler updates DB status to failed."""
-        from app.tasks.document_processing import ProcessingTask
+        from app.tasks.base import ProcessingTask  # Point to the correct base path
 
         task_handler = ProcessingTask()
         error_exc = Exception("MinIO Connection Timeout")
 
-        # Bridge asyncio.run (from app) to the current test loop
-        def mock_run_in_existing_loop(coro):
-            return asyncio.get_event_loop().create_task(coro)
-
-        with (
-            patch("app.tasks.document_processing.AsyncSessionLocal", new=mock_db_factory),
-            patch(
-                "app.tasks.document_processing.asyncio.run", side_effect=mock_run_in_existing_loop
-            ),
-        ):
+        # We only need to mock the session factory, not the loop management
+        with patch("app.tasks.base.AsyncSessionLocal", new=mock_db_factory):
             # Call sync handler
             task_handler.on_failure(
                 exc=error_exc, task_id="test-id", args=[test_document.id], kwargs={}, einfo=None
             )
 
-            # Yield control to let the background task finish
-            await asyncio.sleep(0.05)
+            # Yield control to let the loop execute the created task
+            await asyncio.sleep(0.1)
 
             await session.refresh(test_document)
             assert test_document.processing_status == "failed"

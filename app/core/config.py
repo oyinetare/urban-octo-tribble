@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -46,6 +47,29 @@ class Settings(BaseSettings):
     CELERY_ACCEPT_CONTENT: list[str]
     CELERY_TIMEZONE: str
     CELERY_ENABLE_UTC: bool
+
+    # Qdrant Configuration
+    QDRANT_HOST: str = Field(default="localhost", description="Qdrant host")
+    QDRANT_PORT: int = Field(default=6333, description="Qdrant port")
+    QDRANT_COLLECTION_NAME: str = Field(
+        default="documents", description="Qdrant collection name for documents"
+    )
+    QDRANT_API_KEY: str | None = Field(
+        default=None, description="Optional API key for Qdrant Cloud"
+    )
+
+    # Embedding Configuration
+    EMBEDDING_MODEL: str = Field(
+        default="all-MiniLM-L6-v2", description="Sentence transformer model for embeddings"
+    )
+    EMBEDDING_DIMENSION: int = Field(default=384, description="Dimension of embedding vectors")
+    EMBEDDING_BATCH_SIZE: int = Field(default=32, description="Batch size for embedding generation")
+
+    # Search Configuration
+    DEFAULT_SEARCH_LIMIT: int = Field(default=5, description="Default number of search results")
+    DEFAULT_SCORE_THRESHOLD: float = Field(
+        default=0.7, description="Default minimum similarity score for search"
+    )
 
     model_config = SettingsConfigDict(env_file=".env")
 

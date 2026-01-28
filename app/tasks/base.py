@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from asgiref.sync import async_to_sync
@@ -28,10 +29,12 @@ class ProcessingTask(Task):
                     await session.commit()
 
         try:
-            # async_to_sync handles the loop management more safely for Celery workers
+            # Check if we are already in an async loop (Tests)
+            loop = asyncio.get_running_loop()
+            loop.create_task(update_status_failed())
+        except RuntimeError:
+            # No loop running (Standard Celery Worker)
             async_to_sync(update_status_failed)()
-        except Exception as e:
-            logger.error(f"Failed to update error status for doc {document_id}: {e}")
 
     def on_success(self, retval, task_id, args, kwargs):
         # Use underscore for unused vars to pass Ruff ARG002

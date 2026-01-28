@@ -460,7 +460,7 @@
 - [x] Add Qdrant to Docker Compose
 - [ ] Create collection with proper configuration
 - [ ] Configure HNSW index parameters
-- [ ] Test connectivity
+- [x] Test connectivity
 - [x] Install Sentence Transformers
 - [ ] Choose embedding model (all-MiniLM-L6-v2)
 - [ ] Implement batch embedding

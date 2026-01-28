@@ -1,16 +1,18 @@
 import asyncio
 import logging
 
-from app.celery_app import celery_app
-from app.core import AsyncSessionLocal, ProcessingTask
+from celery import shared_task
+
+from app.core import AsyncSessionLocal
 from app.models import Document
 from app.services import ChunkBuilder, ChunkRepository, chunker
+from app.tasks import ProcessingTask
 
 logger = logging.getLogger(__name__)
 
 
 # Keep the logic in services and the orchestration in the task.
-@celery_app.task(base=ProcessingTask, bind=True)
+@shared_task(base=ProcessingTask, bind=True)
 def chunk_document(self, document_id: int):
     # Standard loop handling
     try:

@@ -1,15 +1,17 @@
 import asyncio
 import logging
 
-from app.celery_app import celery_app
-from app.core import AsyncSessionLocal, ProcessingTask, extraction_factory
+from celery import shared_task
+
+from app.core import AsyncSessionLocal, extraction_factory
 from app.models import Document
 from app.services import storage_service
+from app.tasks import ProcessingTask
 
 logger = logging.getLogger(__name__)
 
 
-@celery_app.task(base=ProcessingTask, bind=True)
+@shared_task(base=ProcessingTask, bind=True)
 def process_document(self, document_id: int):
     # Standard loop handling
     try:

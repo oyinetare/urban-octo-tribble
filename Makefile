@@ -100,7 +100,9 @@ db-reset:
 	uv run alembic upgrade head
 
 docker-hot-reload: check-docker-up ## Start Docker services
-	docker compose up --build -d
+# 	docker compose up --build -d
+	docker compose build
+	docker compose up -d
 
 docker-up: check-docker-up ## Start Docker services
 	docker compose up -d

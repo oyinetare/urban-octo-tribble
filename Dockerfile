@@ -29,16 +29,18 @@ FROM python:3.13-slim
 # Set the working directory inside the container
 WORKDIR /app
 
-# Install uv in the final stage too (standard practice in 2026)
+# Non-root user for security (Production Best Practice)
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+USER appuser
+
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
+COPY --chown=appuser:appuser . .
 
-# Copy venv and code
-COPY --from=builder /app/.venv /app/.venv
-COPY . .
-
-# Environment setup
 ENV PATH="/app/.venv/bin:$PATH"
+# Ensures app module is found regardless of where you call it
+ENV PYTHONPATH="/app"
 ENV PYTHONUNBUFFERED=1
 
-# Use uv run to ensure the environment is activated correctly
+# Use the list form for better signal handling (SIGTERM)
 CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

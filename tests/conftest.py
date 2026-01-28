@@ -198,32 +198,61 @@ async def test_document(session: AsyncSession, test_user: User) -> Document:
 
 @pytest.fixture(autouse=True)
 def mock_celery_tasks():
-    """
-    Globally mocks Celery task execution to prevent connection
-    attempts to Redis/Broker during tests.
-    """
-    # Replace 'app.tasks.document_processing' with the actual path
-    # where your process_document task is defined.
     with (
-        patch("app.tasks.document_processing.process_document.delay") as mock_delay,
-        patch("app.tasks.document_processing.process_document.apply_async") as mock_apply,
-        # Patch the Celery app's connection/backend
+        # 1. Patch the tasks at their SOURCE (app.tasks)
+        # This intercepts 'from app.tasks import ...' even inside functions
+        patch("app.tasks.process_document") as mock_process,
+        patch("app.tasks.chunk_document") as mock_chunk,
+        # 2. Patch the Celery app instance
         patch("app.celery_app.celery_app.send_task"),
-        # Ensure update_state doesn't try to touch Redis
+        # 3. Prevent background Redis connection attempts
+        patch("celery.app.task.Task.backend", None),
         patch("celery.app.task.Task.update_state", return_value=None),
     ):
-        # Configure the mock to return a dummy task object
-        mock_task = MagicMock()
-        mock_task.id = "mock-task-id"
-        mock_delay.return_value = mock_task
-        mock_apply.return_value = mock_task
+        # Configure a generic Task mock
+        mock_task_obj = MagicMock()
+        mock_task_obj.id = "mock-task-id"
 
-        yield {"delay": mock_delay, "apply": mock_apply}
+        # Ensure both .delay() and .apply_async() return the mock task
+        mock_process.delay.return_value = mock_task_obj
+        mock_process.apply_async.return_value = mock_task_obj
+
+        mock_chunk.delay.return_value = mock_task_obj
+        mock_chunk.apply_async.return_value = mock_task_obj
+
+        yield {"process_task": mock_process, "chunk_task": mock_chunk, "task_id": "mock-task-id"}
 
 
 @pytest_asyncio.fixture
 def chunker():
     return DocumentChunker(chunk_size=10, overlap=2)
+
+
+@pytest.fixture(autouse=True)
+def mock_rate_limiter():
+    """
+    Prevents the rate limiter from actually hitting Redis and
+    allows us to control the 429 responses in tests.
+    """
+    # Adjust this path to where your RateLimitMiddleware or
+    # dependency check lives (e.g., app.middleware.rate_limit)
+    with patch("app.middleware.rate_limit.rate_limit_middleware") as mock_check:
+        # Default to allowing all requests
+        mock_check.return_value = False
+        yield mock_check
+
+
+@pytest.fixture(autouse=True)
+def mock_token_bucket():
+    """
+    Mocks the TokenBucket consume method to prevent real Redis interaction
+    and time-based logic during tests.
+    """
+    # Path should point to where TokenBucket is defined/used
+    with patch("app.middleware.rate_limit.TokenBucket.consume") as mock_consume:
+        # Default to allowing the request: (allowed=True, info_dict)
+        mock_consume.return_value = (True, {"remaining": 10})
+        yield mock_consume
 
 
 @pytest.fixture(autouse=True)

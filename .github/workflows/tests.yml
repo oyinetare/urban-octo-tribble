@@ -13,21 +13,41 @@ jobs:
         PROJECT_NAME: "urban-octo-tribble"
         DATABASE_URL: "sqlite+aiosqlite:///:memory:"
         SECRET_KEY: "ci-test-secret-key-not-for-production"
+
+        # Redis & Celery
         REDIS_HOST: localhost
         REDIS_PORT: 6379
         REDIS_PASSWORD: "changeme"
-        MINIO_ENDPOINT: localhost:9000
-        MINIO_ACCESS_KEY: minioadmin
-        MINIO_SECRET_KEY: minioadmin
-        MINIO_ROOT_USER: minioadmin
-        MINIO_ROOT_PASSWORD: minioadmin
-        CELERY_BROKER_URL: "redis://:changeme@redis:6379/0"
-        CELERY_RESULT_BACKEND: "redis://:changeme@redis:6379/0"
+        CELERY_BROKER_URL: "redis://:changeme@localhost:6379/0"
+        CELERY_RESULT_BACKEND: "redis://:changeme@localhost:6379/0"
         CELERY_TASK_SERIALIZER: "json"
         CELERY_RESULT_SERIALIZER: "json"
         CELERY_ACCEPT_CONTENT: '[ "json" ]'
         CELERY_TIMEZONE: "UTC"
         CELERY_ENABLE_UTC: "True"
+
+        # MinIO
+        MINIO_ENDPOINT: localhost:9000
+        MINIO_ACCESS_KEY: minioadmin
+        MINIO_SECRET_KEY: minioadmin
+        MINIO_ROOT_USER: minioadmin
+        MINIO_ROOT_PASSWORD: minioadmin
+
+        # Qdrant Configuration
+        QDRANT_HOST: "localhost"
+        QDRANT_PORT: 6333
+        QDRANT_COLLECTION_NAME: "documents"
+        QDRANT_API_KEY: ""
+
+        # Embedding Configuration
+        EMBEDDING_MODEL: "all-MiniLM-L6-v2"
+        EMBEDDING_DIMENSION: 384
+        EMBEDDING_BATCH_SIZE: 32
+
+        # Search Configuration
+        DEFAULT_SEARCH_LIMIT: 5
+        DEFAULT_SCORE_THRESHOLD: 0.7
+
         UV_CACHE_DIR: /home/runner/work/_temp/setup-uv-cache
 
     steps:
