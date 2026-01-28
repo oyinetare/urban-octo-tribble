@@ -452,27 +452,33 @@ class TestIdempotency:
         assert response1.json()["title"] == response2.json()["title"]
 
     @pytest.mark.asyncio
-    async def test_delete_is_idempotent(self, client: AsyncClient, auth_headers, test_document):
+    async def test_delete_is_idempotent(
+        self, client: AsyncClient, auth_headers, test_document, storage_mock
+    ):
         """Test that deleting a document handles external services and returns 404 on second call."""
 
-        # 1. Patch the services inside the container used by the app
-        with (
-            patch(
-                "app.core.services.services.storage.delete", new_callable=AsyncMock
-            ) as mock_storage_del,
-            patch(
-                "app.core.services.services.vector_store.delete_document", new_callable=AsyncMock
-            ) as mock_vector_del,
-        ):
-            mock_storage_del.return_value = True
-            mock_vector_del.return_value = True
+        # The storage_mock fixture already provides a MockStorageAdapter
+        # Just configure the return values on the existing mock
+        storage_mock._delete_mock.return_value = None
 
+        # For vector store, we need to patch the actual service instance
+        from app.core.services import services
+
+        # Create an AsyncMock for vector store delete
+        mock_vector_delete = AsyncMock(return_value=True)
+
+        # Patch the vector store's delete_document method
+        with patch.object(services.vector_store, "delete_document", mock_vector_delete):
             # FIRST CALL: Should succeed
             response1 = await client.delete(
                 f"/api/v1/documents/{test_document.id}", headers=auth_headers
             )
             assert response1.status_code == 204
-            mock_storage_del.assert_called_once()
+
+            # Verify storage delete was called
+            storage_mock._delete_mock.assert_called_once()
+            # Verify vector store delete was called
+            mock_vector_delete.assert_called_once_with(test_document.id)
 
             # SECOND CALL: verify_document_ownership runs again.
             # Since the record was deleted from the 'session' in call 1,
