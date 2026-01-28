@@ -22,7 +22,7 @@ jobs:
         ports: ["6333:6333"]
 
       minio:
-        image: bitnami/minio:latest
+        image: bitnami/minio:rolling
         ports: ["9000:9000"]
         env:
           MINIO_ROOT_USER: minioadmin
