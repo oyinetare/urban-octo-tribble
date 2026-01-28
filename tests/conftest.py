@@ -5,15 +5,19 @@ from unittest.mock import MagicMock, patch
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from qdrant_client import AsyncQdrantClient
+from qdrant_client.http import models
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel
 
-from app.core import get_session, redis_service, token_manager
+from app.core import get_session, get_settings, redis_service, token_manager
 from app.dependencies import get_storage_service
 from app.main import app
 from app.models import Document, User
 from app.services import DocumentChunker, MockStorageAdapter, StorageAdapter
+
+settings = get_settings()
 
 # Suppress specific warnings at module level
 warnings.filterwarnings("ignore", message="coroutine.*was never awaited")
@@ -268,6 +272,51 @@ def mock_redis_pool():
     with patch("redis.asyncio.connection.ConnectionPool.from_url") as mock:
         mock.return_value = MagicMock()
         yield mock
+
+
+@pytest_asyncio.fixture(scope="session", autouse=True)
+async def setup_qdrant():
+    """
+    Ensures the Qdrant collection exists before running tests.
+    Scope is 'session' so it only runs once.
+    """
+    client = AsyncQdrantClient(
+        host=settings.QDRANT_HOST, port=settings.QDRANT_PORT, api_key=settings.QDRANT_API_KEY
+    )
+
+    collection_name = settings.QDRANT_COLLECTION_NAME
+
+    # Check if collection exists
+    collections = await client.get_collections()
+    exists = any(c.name == collection_name for c in collections.collections)
+
+    if not exists:
+        await client.create_collection(
+            collection_name=collection_name,
+            vectors_config=models.VectorParams(
+                size=settings.EMBEDDING_DIMENSION, distance=models.Distance.COSINE
+            ),
+        )
+
+    yield client
+
+    # Optional: Clean up after the whole test session
+    # await client.delete_collection(collection_name)
+    await client.close()
+
+
+@pytest_asyncio.fixture
+async def clean_qdrant(setup_qdrant):
+    """
+    Use this fixture in specific tests to wipe data between runs
+    without deleting the whole collection schema.
+    """
+    await setup_qdrant.delete_payload(
+        collection_name=settings.QDRANT_COLLECTION_NAME,
+        keys_filter=models.Filter(must=[models.HasIdCondition(has_id=[...])]),  # or points selector
+        points=models.FilterSelector(filter=models.Filter()),
+    )
+    yield
 
 
 # @pytest.fixture(scope="session", autouse=True)
