@@ -23,7 +23,7 @@ jobs:
 
       minio:
         # Using a specific version tag to avoid 'latest' manifest issues
-        image: minio/minio:latest
+        image: docker.io/bitnami/minio:2025
         ports:
           - 9000:9000
         env:
@@ -84,6 +84,19 @@ jobs:
 
     - name: Run Ruff Linting
       run: uv run ruff check .
+
+    - name: Ensure MinIO bucket exists
+      run: |
+        sleep 5
+        uv run python -c "
+        import boto3
+        s3 = boto3.client('s3', endpoint_url='http://localhost:9000', aws_access_key_id='minioadmin', aws_secret_access_key='minioadmin')
+        try:
+            s3.create_bucket(Bucket='documents')
+            print('Bucket created successfully')
+        except s3.exceptions.BucketAlreadyOwnedByYou:
+            print('Bucket already exists')
+        "
 
     - name: Run tests with coverage
       timeout-minutes: 10
