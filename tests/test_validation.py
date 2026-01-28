@@ -1,4 +1,5 @@
 from io import BytesIO
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import AsyncClient
@@ -451,30 +452,34 @@ class TestIdempotency:
         assert response1.json()["title"] == response2.json()["title"]
 
     @pytest.mark.asyncio
-    async def test_delete_is_idempotent(
-        self, client: AsyncClient, auth_headers, session, test_user
-    ):
-        """Test that DELETE requests are idempotent."""
-        from app.models import Document
+    async def test_delete_is_idempotent(self, client: AsyncClient, auth_headers, test_document):
+        """Test that deleting a document handles external services and returns 404 on second call."""
 
-        doc = Document(
-            title="To Delete",
-            description="Description",
-            owner_id=test_user.id,
-            filename="test.pdf",
-            storage_key="test/key",
-            file_size=1024,
-            content_type="application/pdf",
-            processing_status="pending",
-        )
-        session.add(doc)
-        await session.commit()
-        await session.refresh(doc)
+        # 1. Patch the services inside the container used by the app
+        with (
+            patch(
+                "app.core.services.services.storage.delete", new_callable=AsyncMock
+            ) as mock_storage_del,
+            patch(
+                "app.core.services.services.vector_store.delete_document", new_callable=AsyncMock
+            ) as mock_vector_del,
+        ):
+            mock_storage_del.return_value = True
+            mock_vector_del.return_value = True
 
-        # Delete once
-        response1 = await client.delete(f"/api/v1/documents/{doc.id}", headers=auth_headers)
-        assert response1.status_code == 204
+            # FIRST CALL: Should succeed
+            response1 = await client.delete(
+                f"/api/v1/documents/{test_document.id}", headers=auth_headers
+            )
+            assert response1.status_code == 204
+            mock_storage_del.assert_called_once()
 
-        # Delete again (should return 404)
-        response2 = await client.delete(f"/api/v1/documents/{doc.id}", headers=auth_headers)
-        assert response2.status_code == 404
+            # SECOND CALL: verify_document_ownership runs again.
+            # Since the record was deleted from the 'session' in call 1,
+            # scalar_one_or_none() returns None -> DocumentNotFoundException (404).
+            response2 = await client.delete(
+                f"/api/v1/documents/{test_document.id}", headers=auth_headers
+            )
+
+            # This is correct REST behavior: you can't 'own' what doesn't exist
+            assert response2.status_code == 404
