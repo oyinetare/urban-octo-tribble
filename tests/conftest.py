@@ -9,10 +9,10 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel
 
-from app.core import get_session, get_settings, services, token_manager
+from app.core import get_settings, services, token_manager
 from app.main import app
 from app.models import Document, User
-from app.services import DocumentChunker, MockStorageAdapter, StorageAdapter
+from app.services import DocumentChunker, MockStorageAdapter
 
 settings = get_settings()
 
@@ -70,39 +70,41 @@ async def storage_mock():
     return MockStorageAdapter()
 
 
-# tests/conftest.py
 @pytest_asyncio.fixture(scope="function")
-async def client(session: AsyncSession, storage_mock: StorageAdapter):
+async def client(session: AsyncSession, storage_mock):
     from fakeredis.aioredis import FakeRedis
 
     from app.core.services import services
     from app.services.redis_service import RedisService
 
-    # 1. HARD RESET the Singleton for every test
+    # 1. Force clear any existing singleton state
     RedisService._instance = None
     test_redis = RedisService()
     test_redis._redis_client = FakeRedis(decode_responses=True)
 
-    # 2. Re-inject into the global container
+    # 2. Re-inject mocks
     services.redis = test_redis
     services.storage = storage_mock
-    # services.embedding is already mocked session-wide, so it's fine
 
-    # 3. Ensure all internal state is wiped
-    await services.init()
-    if services.redis.client:
-        await services.redis.client.flushall()
+    # 3. Use a timeout for the init call to prevent CI hangs
+    import asyncio
+
+    try:
+        await asyncio.wait_for(services.init(), timeout=5.0)
+    except TimeoutError:
+        pytest.fail("Service initialization timed out in CI")
 
     # 4. Standard dependency overrides
     async def override_get_session():
         yield session
+
+    from app.dependencies import get_session
 
     app.dependency_overrides[get_session] = override_get_session
 
     async with AsyncClient(
         transport=ASGITransport(app=app),
         base_url="http://testserver",
-        follow_redirects=False,  # Keep False for URL tests
     ) as ac:
         yield ac
         app.dependency_overrides.clear()
