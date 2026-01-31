@@ -31,7 +31,9 @@ from app.schemas import (
     StatsResponse,
 )
 from app.schemas.document import ProcessingStatusResponse
-from app.services import StorageAdapter, VectorStoreService, validator
+from app.services.storage import StorageAdapter
+from app.services.validators import validator
+from app.services.vector_store import VectorStoreService
 from app.utility import base62_encoder, id_generator
 
 router = APIRouter()

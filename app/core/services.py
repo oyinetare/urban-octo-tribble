@@ -2,6 +2,7 @@ import logging
 
 from app.core.config import get_settings
 from app.services.embeddings import EmbeddingService
+from app.services.rag import RAGService
 from app.services.redis_service import RedisService
 from app.services.storage import MinIOAdapter, StorageAdapter
 from app.services.vector_store import VectorStoreService
@@ -15,6 +16,7 @@ class Services:
     embedding: EmbeddingService | None = None
     vector_store: VectorStoreService | None = None
     redis: RedisService | None = None
+    rag: RAGService | None = None
 
     @classmethod
     async def init(cls):
@@ -81,6 +83,27 @@ class Services:
 
                 logger.error(traceback.format_exc())
                 cls.vector_store = None
+
+        # app/core/services.py (Inside Services.init)
+        if cls.rag is None:
+            # Use 'assert' to narrow the type for the static analyser
+            assert cls.vector_store is not None, "VectorStore must be initialized"
+            assert cls.embedding is not None, "Embedding must be initialized"
+
+            try:
+                from app.services.llm import LLMService
+
+                llm = LLMService()
+
+                cls.rag = RAGService(
+                    vector_store=cls.vector_store,  # No longer 'None' thanks to assert
+                    embedding_service=cls.embedding,  # No longer 'None' thanks to assert
+                    llm_service=llm,
+                    session=None,
+                )
+                logger.info("✅ RAG service initialized successfully")
+            except Exception as e:
+                logger.error(f"❌ RAG initialization failed: {e}")
 
 
 services = Services()

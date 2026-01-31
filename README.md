@@ -158,11 +158,11 @@ curl -X POST 'http://localhost:8000/api/v1/auth/logout' \
 #   -d '{"title": "Test Doc", "description": "Test"}' | jq
 
 # Upload document
-# curl -X POST http://localhost:8000/api/v1/documents/upload \
-#   -H "Authorization: Bearer $TOKEN" \
-#   -F "file=@document.txt" \
-#   -F "title=Test" \
-#   -F "description=Test description" | jq
+curl -X POST http://localhost:8000/api/v1/documents/upload \
+   -H "Authorization: Bearer $TOKEN" \
+   -F "file=On System Design by Jim Waldo.pdf" \
+   -F "title=Test" \
+   -F "description=Test description" | jq
 
 # procewsing status
 # curl -X GET http://localhost:8000/api/v1/documents/{docuemnt_id}/status\
@@ -170,15 +170,19 @@ curl -X POST 'http://localhost:8000/api/v1/auth/logout' \
 
 RESPONSE=$(curl -X POST http://localhost:8000/api/v1/documents/upload \
   -H "Authorization: Bearer $TOKEN" \
-  -F "file=@document.txt" \
-  -F "title=Test" \
-  -F "description=Test description")
+  -F "file=@On System Design by Jim Waldo.pdf" \
+  -F "title=On System Design by Jim Waldo" \
+  -F "description=")
 
 # Print the response pretty-printed
 echo $RESPONSE | jq
 
 # Extract the document_id for the next command
 DOC_ID=$(echo $RESPONSE | jq -r '.id')
+
+
+curl -X GET http://localhost:8000/api/v1/documents/$DOC_ID/status \
+  -H "Authorization: Bearer $TOKEN" | jq
 
 # loop to watch the percentage go up in real-time
 while true; do
@@ -192,11 +196,6 @@ while true; do
   fi
   sleep 1
 done
-
-
-curl -X GET http://localhost:8000/api/v1/documents/$DOC_ID/status \
-  -H "Authorization: Bearer $TOKEN" | jq
-
 
 
 # 2. Get document ID

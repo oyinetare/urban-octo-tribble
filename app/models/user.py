@@ -10,7 +10,7 @@ from app.models import BaseModel
 # This import only happens during type checking, not at runtime
 # standard Python pattern for avoiding circular imports while keeping type checkers happy
 if TYPE_CHECKING:
-    from app.models import Document
+    from app.models import Document, Query
 
 
 class User(BaseModel, table=True):
@@ -37,6 +37,7 @@ class User(BaseModel, table=True):
 
     # Relationships
     documents: list["Document"] = Relationship(back_populates="owner")
+    queries: list["Query"] = Relationship(back_populates="user")
 
     @property
     def role(self) -> UserRole:

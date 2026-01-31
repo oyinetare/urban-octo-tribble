@@ -10,7 +10,10 @@ from app.models import BaseModel
 # This import only happens during type checking, not at runtime
 # standard Python pattern for avoiding circular imports while keeping type checkers happy
 if TYPE_CHECKING:
-    from app.models import Chunk, ShortURL, User
+    from app.models.chunk import Chunk
+    from app.models.query import Query
+    from app.models.shorturl import ShortURL
+    from app.models.user import User
 
 
 class Document(BaseModel, table=True):
@@ -54,6 +57,7 @@ class Document(BaseModel, table=True):
     chunks: list["Chunk"] = Relationship(
         back_populates="document", sa_relationship_kwargs={"cascade": "all, delete-orphan"}
     )
+    queries: list["Query"] = Relationship(back_populates="document")
 
     @property
     def status(self) -> ProcessingStatus:

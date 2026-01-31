@@ -17,7 +17,11 @@ from app.exceptions import (
 )
 from app.models import Document, User
 from app.schemas import PaginationParams
+from app.services.embeddings import EmbeddingService
+from app.services.llm import LLMService
+from app.services.rag import RAGService
 from app.services.redis_service import RedisService
+from app.services.vector_store import VectorStoreService
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/api/v1/auth/login",
@@ -70,6 +74,38 @@ async def get_services():
     if not (services.redis and services.storage):
         await services.init()
     return services
+
+
+# async def get_rag_service(session: AsyncSession = Depends(get_session)) -> RAGService:
+#     if not services.rag:
+#         await services.init()
+
+#     # This check narrow 'services.rag' from 'RAGService | None' to just 'RAGService'
+#     if services.rag is None:
+#         raise AppException(status_code=500, message="RAG Service unavailable")
+
+#     services.rag.session = session
+#     return services.rag
+
+
+async def get_llm_service() -> LLMService:
+    """Dependency to get LLM service."""
+    return LLMService()
+
+
+async def get_rag_service(
+    vector_store: VectorStoreService = Depends(get_vector_service),
+    embedding_service: EmbeddingService = Depends(get_embedding_service),
+    llm_service: LLMService = Depends(get_llm_service),
+    session: AsyncSession = Depends(get_session),
+) -> RAGService:
+    """Dependency to get RAG service."""
+    return RAGService(
+        vector_store=vector_store,
+        llm_service=llm_service,
+        embedding_service=embedding_service,
+        session=session,
+    )
 
 
 #########

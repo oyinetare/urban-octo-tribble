@@ -4,7 +4,7 @@ from celery import shared_task
 
 from app.core import ProcessingStatus
 from app.models import Document
-from app.services import ChunkBuilder, ChunkRepository, chunker
+from app.services.chunking import ChunkBuilder, ChunkRepository, chunker
 from app.tasks import ProcessingTask
 from app.tasks.base import get_async_session, run_async
 

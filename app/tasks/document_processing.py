@@ -4,7 +4,7 @@ from celery import shared_task
 
 from app.core import ProcessingStatus, extraction_factory
 from app.models import Document
-from app.services import storage_service
+from app.services.storage import storage_service
 from app.tasks import ProcessingTask
 from app.tasks.base import get_async_session, run_async
 
