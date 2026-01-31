@@ -2,7 +2,7 @@ import logging
 import uuid
 from typing import Any
 
-from qdrant_client import AsyncQdrantClient, QdrantClient
+from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import (
     Distance,
     FieldCondition,
@@ -41,16 +41,8 @@ class VectorStoreService:
             embedding_dimension: Dimension of embeddings
             api_key: Optional API key for Qdrant Cloud
         """
-        # Sync client for initialization
-        self.client = QdrantClient(
-            host=host,
-            port=port,
-            api_key=api_key,
-            prefer_grpc=False,
-            https=False,
-        )
-
-        # Async client for operations
+        # We only need the Async client.
+        # Avoid performing I/O (like _ensure_collection_exists) in __init__
         self.async_client = AsyncQdrantClient(
             host=host,
             port=port,
@@ -61,38 +53,59 @@ class VectorStoreService:
 
         self.collection_name = collection_name
         self.embedding_dimension = embedding_dimension
-        self._ensure_collection_exists()
 
-    def _ensure_collection_exists(self):
-        """Create collection if it doesn't exist with optimized HNSW parameters"""
+    async def _ensure_collection_exists(self):
+        """
+        Create collection if it doesn't exist with optimized HNSW parameters.
+        Now async to satisfy the 'await' in Services.init
+        """
         try:
-            collections = self.client.get_collections().collections
-            collection_names = [col.name for col in collections]
+            # Test connection first
+            logger.info(f"Connecting to Qdrant to check/create collection: {self.collection_name}")
+
+            # Get existing collections
+            response = await self.async_client.get_collections()
+            collection_names = [col.name for col in response.collections]
+
+            logger.info(f"Found {len(collection_names)} existing collections: {collection_names}")
 
             if self.collection_name not in collection_names:
-                self.client.create_collection(
+                logger.info(
+                    f"Creating collection '{self.collection_name}' with dimension {self.embedding_dimension}"
+                )
+
+                await self.async_client.create_collection(
                     collection_name=self.collection_name,
                     vectors_config=VectorParams(
                         size=self.embedding_dimension,
                         distance=Distance.COSINE,
                     ),
-                    # Optimized HNSW configuration
                     hnsw_config=HnswConfigDiff(
-                        m=16,  # Number of edges per node
-                        ef_construct=100,  # Quality of index construction
-                        full_scan_threshold=10000,  # When to use brute force
+                        m=16,
+                        ef_construct=100,
+                        full_scan_threshold=10000,
                     ),
-                    # Force early indexing for development
                     optimizers_config=OptimizersConfigDiff(
-                        indexing_threshold=10,  # Index after 10 vectors
+                        indexing_threshold=10,
                     ),
                 )
-                logger.info(f"Created Qdrant collection: {self.collection_name}")
+                logger.info(f"✅ Successfully created Qdrant collection: {self.collection_name}")
             else:
-                logger.info(f"Collection already exists: {self.collection_name}")
+                logger.info(f"✅ Collection already exists: {self.collection_name}")
+
+            # Verify the collection was created/exists
+            response = await self.async_client.get_collections()
+            collection_names = [col.name for col in response.collections]
+            if self.collection_name in collection_names:
+                logger.info(f"✅ Verified collection '{self.collection_name}' exists in Qdrant")
+            else:
+                raise Exception(f"Collection '{self.collection_name}' not found after creation")
 
         except Exception as e:
-            logger.error(f"Error creating collection: {e}")
+            logger.error(f"❌ Error with Qdrant collection: {e}")
+            logger.error(f"   Collection name: {self.collection_name}")
+            logger.error(f"   Embedding dimension: {self.embedding_dimension}")
+            # Re-raise to make the error visible
             raise
 
     async def add_documents(
@@ -129,7 +142,8 @@ class VectorStoreService:
                     "chunk_text": chunk,
                 }
 
-                # Generate unique point ID as UUID
+                # 🔧 FIX: Generate UUID instead of using large integer IDs
+                # Qdrant expects either UUID strings or small unsigned integers
                 point_id = str(uuid.uuid4())
 
                 points.append(
@@ -140,20 +154,18 @@ class VectorStoreService:
                     )
                 )
 
-            # Upload in batches for efficiency
+            # Batched upload using async client
             batch_size = 100
             for i in range(0, len(points), batch_size):
-                batch = points[i : i + batch_size]
                 await self.async_client.upsert(
                     collection_name=self.collection_name,
-                    points=batch,
+                    points=points[i : i + batch_size],
                 )
 
             logger.info(f"Added {len(chunks)} chunks for document {document_id}")
             return len(chunks)
-
         except Exception as e:
-            logger.error(f"Error adding documents to vector store: {e}")
+            logger.error(f"Error adding documents: {e}")
             raise
 
     async def search(
@@ -180,12 +192,7 @@ class VectorStoreService:
             query_filter = None
             if document_id is not None:
                 query_filter = Filter(
-                    must=[
-                        FieldCondition(
-                            key="document_id",
-                            match=MatchValue(value=document_id),
-                        )
-                    ]
+                    must=[FieldCondition(key="document_id", match=MatchValue(value=document_id))]
                 )
 
             # Perform search
@@ -218,7 +225,6 @@ class VectorStoreService:
 
             logger.info(f"Found {len(formatted_results)} similar chunks")
             return formatted_results
-
         except Exception as e:
             logger.error(f"Error searching vector store: {e}")
             raise
@@ -234,26 +240,16 @@ class VectorStoreService:
             bool: True if successful
         """
         try:
-            filter_condition = Filter(
-                must=[
-                    FieldCondition(
-                        key="document_id",
-                        match=MatchValue(value=document_id),
-                    )
-                ]
-            )
-
             await self.async_client.delete(
                 collection_name=self.collection_name,
-                points_selector=filter_condition,
+                points_selector=Filter(
+                    must=[FieldCondition(key="document_id", match=MatchValue(value=document_id))]
+                ),
             )
-
-            logger.info(f"Deleted all chunks for document {document_id}")
             return True
-
         except Exception as e:
             logger.error(f"Error deleting document from vector store: {e}")
-            raise
+            return False
 
     async def get_document_chunks_count(self, document_id: int) -> int:
         """
@@ -285,13 +281,3 @@ class VectorStoreService:
         except Exception as e:
             logger.error(f"Error counting document chunks: {e}")
             raise
-
-
-# Initialize global vector store service
-# vector_store_service = VectorStoreService(
-#     host=settings.QDRANT_HOST,
-#     port=settings.QDRANT_PORT,
-#     collection_name=settings.QDRANT_COLLECTION_NAME,
-#     embedding_dimension=384,  # all-MiniLM-L6-v2 dimension
-#     api_key=getattr(settings, 'QDRANT_API_KEY', None),
-# )

@@ -47,5 +47,6 @@ class SortOrder(StrEnum):
 class ProcessingStatus(StrEnum):
     PENDING = "pending"  # uploading
     PROCESSING = "processing"
+    CHUNKED = "chunked"
     COMPLETED = "completed"
     FAILED = "failed"

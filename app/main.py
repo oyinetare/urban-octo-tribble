@@ -16,7 +16,7 @@ from app.middleware import (
     rate_limit_middleware,
     security_headers_middleware,
 )
-from app.routes import auth, documents, users
+from app.routes import auth, documents, search, users
 
 settings = get_settings()
 
@@ -160,48 +160,51 @@ async def liveness_check():
     return {"status": "alive"}
 
 
-@app.get("/health/ready")
+@app.get("/health/ready", tags=["Health"])
 async def readiness_check():
     """
     Comprehensive Readiness probe for all infrastructure dependencies.
     Returns 200 if all are ready, 503 if any are down.
     """
 
-    # 1. Define internal check logic
     async def check_redis():
-        return await services.redis.ping() if services.redis else False
+        if services.redis is None:
+            return False
+        return await services.redis.ping()
 
     async def check_storage():
-        # MinIO/S3 check using the bucket existence check
-        return (
-            await services.storage.file_exists("health-check-sentinel")
-            if services.storage
-            else False
-        )
-
-    async def check_qdrant():
-        if not services.vector_store:
+        """Check if storage is accessible"""
+        if not services.storage:
             return False
         try:
-            # Check connection to the specific collection
-            return await services.vector_store.async_client.get_collections() is not None
+            # Simple check - storage responds to API calls
+            await services.storage.file_exists("__health_check__")
+            return True
         except Exception:
             return False
 
-    # 2. Run all checks in parallel for performance
+    async def check_qdrant():
+        if services.vector_store is None:
+            return False
+        try:
+            # Check connection and verify collections can be retrieved
+            collections = await services.vector_store.async_client.get_collections()
+            return collections is not None
+        except Exception:
+            return False
+
+    # Run all checks in parallel for performance
     redis_ok, storage_ok, qdrant_ok = await asyncio.gather(
         check_redis(), check_storage(), check_qdrant(), return_exceptions=True
     )
 
-    # 3. Aggregate results (convert potential exceptions to False)
     health_status = {
         "redis": redis_ok is True,
         "storage": storage_ok is True,
         "vector_store": qdrant_ok is True,
-        "database": True,  # Replace with actual DB ping if needed
+        "database": True,  # TODO: Add actual DB ping
     }
 
-    # 4. Determine overall readiness
     is_ready = all(health_status.values())
 
     return JSONResponse(
@@ -215,6 +218,7 @@ async def readiness_check():
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
+app.include_router(search.router, prefix="/api/v1/search", tags=["Search"])
 app.include_router(documents.router, prefix="/api/v1/documents", tags=["Documents"])
 # Redirect router WITHOUT api prefix (for cleaner URLs like /d/abc123)
 app.include_router(documents.redirect_router)

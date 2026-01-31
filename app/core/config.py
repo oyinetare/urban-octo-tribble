@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     CELERY_ACCEPT_CONTENT: list[str]
     CELERY_TIMEZONE: str
     CELERY_ENABLE_UTC: bool
+    CELERY_WORKER: bool
 
     # Qdrant Configuration
     QDRANT_HOST: str = Field(default="localhost", description="Qdrant host")
