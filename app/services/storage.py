@@ -52,6 +52,10 @@ class MockStorageAdapter(StorageAdapter):
         self._presigned_url_mock = AsyncMock(return_value="http://test.com")
         self._file_exists_mock = AsyncMock(return_value=True)
 
+    async def _ensure_bucket_exists(self):
+        """Mock the internal initialization method called by services.init()"""
+        return None
+
     async def upload(
         self,
         file_data: BinaryIO,

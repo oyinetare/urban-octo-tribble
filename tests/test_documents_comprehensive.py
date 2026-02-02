@@ -218,8 +218,9 @@ class TestDocumentsComprehensive:
         await session.commit()
 
         token = token_manager.create_access_token(
-            data={"sub": new_user.username, "scopes": ["read", "write"]}
+            user_id=new_user.id, username=new_user.username, tier_limit=20, scopes=["read", "write"]
         )
+
         headers = {"Authorization": f"Bearer {token}"}
 
         response = await client.get("/api/v1/documents", headers=headers)

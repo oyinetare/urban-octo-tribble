@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -46,6 +47,72 @@ class Settings(BaseSettings):
     CELERY_ACCEPT_CONTENT: list[str]
     CELERY_TIMEZONE: str
     CELERY_ENABLE_UTC: bool
+    CELERY_WORKER: bool
+
+    # Qdrant Configuration
+    QDRANT_HOST: str = Field(default="qdrant", description="Qdrant host")
+    QDRANT_PORT: int = Field(default=6333, description="Qdrant port")
+    QDRANT_COLLECTION_NAME: str = Field(
+        default="documents", description="Qdrant collection name for documents"
+    )
+    QDRANT_API_KEY: str | None = Field(
+        default=None, description="Optional API key for Qdrant Cloud"
+    )
+
+    # Embedding Configuration
+    EMBEDDING_MODEL: str = Field(
+        default="all-MiniLM-L6-v2", description="Sentence transformer model for embeddings"
+    )
+    EMBEDDING_DIMENSION: int = Field(default=384, description="Dimension of embedding vectors")
+    EMBEDDING_BATCH_SIZE: int = Field(default=32, description="Batch size for embedding generation")
+
+    # Search Configuration
+    DEFAULT_SEARCH_LIMIT: int = Field(default=5, description="Default number of search results")
+    DEFAULT_SCORE_THRESHOLD: float = Field(
+        default=0.7, description="Default minimum similarity score for search"
+    )
+
+    # LLM Configuration
+    LLM_PROVIDER: str = Field(
+        default="anthropic", description="Primary LLM provider: 'anthropic' or 'ollama'"
+    )
+    LLM_FALLBACK_ENABLED: bool = Field(
+        default=True, description="Enable fallback to secondary LLM provider"
+    )
+
+    # Anthropic Configuration
+    ANTHROPIC_API_KEY: str | None = Field(default=None, description="Anthropic API key")
+    ANTHROPIC_MODEL: str = Field(
+        default="claude-sonnet-4-20250514", description="Anthropic model name"
+    )
+    ANTHROPIC_MAX_TOKENS: int = Field(default=4096, description="Max tokens for Claude responses")
+    ANTHROPIC_TEMPERATURE: float = Field(default=0.7, description="Claude temperature (0-1)")
+
+    # Ollama Configuration
+    OLLAMA_BASE_URL: str = Field(
+        default="http://localhost:11434", description="Ollama API base URL"
+    )
+    OLLAMA_MODEL: str = Field(default="llama3.2", description="Ollama model name")
+    OLLAMA_TIMEOUT: int = Field(default=120, description="Ollama request timeout in seconds")
+
+    # RAG Configuration
+    RAG_MAX_CONTEXT_CHUNKS: int = Field(
+        default=5, description="Maximum number of chunks to include in context"
+    )
+    RAG_MIN_SIMILARITY_SCORE: float = Field(
+        default=0.6, description="Minimum similarity score for chunk inclusion"
+    )
+    RAG_SYSTEM_PROMPT: str = Field(
+        default="""You are a helpful AI assistant that answers questions based on the provided document context.
+
+Rules:
+1. Answer ONLY based on the provided context
+2. If the context doesn't contain enough information, say so
+3. Cite your sources by referencing [Source N] where N is the chunk number
+4. Be precise and concise
+5. If asked about multiple documents, clearly distinguish between sources""",
+        description="System prompt for RAG",
+    )
 
     model_config = SettingsConfigDict(env_file=".env")
 

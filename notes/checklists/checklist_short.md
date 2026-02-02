@@ -438,11 +438,11 @@
 - [x] Verify token counts
 
 ### Done When
-- [ ] Documents split into chunks
-- [ ] Chunks saved with position and token count
-- [ ] Chunking task chains to embedding
-- [ ] Edge cases handled
-- [ ] Cleanup logic & Transaction safety
+- [x] Documents split into chunks
+- [x] Chunks saved with position and token count
+- [x] Chunking task chains to embedding
+- [x] Edge cases handled
+- [x] Cleanup logic & Transaction safety
 
 ### Interview Questions You Can Answer
 - "How do you chunk documents for RAG?"
@@ -457,22 +457,22 @@
 **What:** Generate embeddings and implement semantic search with Qdrant
 
 ### Tasks
-- [ ] Add Qdrant to Docker Compose
-- [ ] Create collection with proper configuration
-- [ ] Configure HNSW index parameters
-- [ ] Test connectivity
-- [ ] Install Sentence Transformers
-- [ ] Choose embedding model (all-MiniLM-L6-v2)
-- [ ] Implement batch embedding
-- [ ] Optimize embedding performance
-- [ ] Celery task: embed_chunks
-- [ ] Generate embeddings in batches
-- [ ] Store vectors in Qdrant
-- [ ] Store embedding metadata
-- [ ] `POST /documents/search` - Semantic search
-- [ ] Generate query embedding
-- [ ] Search in Qdrant
-- [ ] Return ranked results with scores
+- [x] Add Qdrant to Docker Compose
+- [x] Create collection with proper configuration
+- [x] Configure HNSW index parameters
+- [x] Test connectivity
+- [x] Install Sentence Transformers
+- [x] Choose embedding model (all-MiniLM-L6-v2)
+- [x] Implement batch embedding
+- [x] Optimize embedding performance
+- [x] Celery task: embed_chunks
+- [x] Generate embeddings in batches
+- [x] Store vectors in Qdrant
+- [x] Store embedding metadata
+- [x] `POST /documents/search` - Semantic search
+- [x] Generate query embedding
+- [x] Search in Qdrant
+- [x] Return ranked results with scores
 - [ ] Test embedding generation
 - [ ] Test search accuracy
 - [ ] Test search performance (<100ms)
@@ -496,27 +496,27 @@
 
 ## Phase 2.5: RAG Implementation
 
-**What:** Combine search with Claude for document Q&A
+**What:** Combine search with Claude or Ollama for document Q&A
 
 ### Tasks
-- [ ] Install Anthropic SDK
-- [ ] Configure API key
-- [ ] Test basic completion
-- [ ] Test streaming
-- [ ] Create RAG system prompt
-- [ ] Build context window
-- [ ] Add citation instructions
-- [ ] Test prompt variations
-- [ ] `POST /documents/{id}/ask` - Ask about specific document
-- [ ] `POST /query` - Ask across all documents
-- [ ] Return answer with citations
-- [ ] Save query history
+- [x] Install Anthropic SDK or Ollama
+- [x] Configure API key
+- [x] Test basic completion
+- [x] Test streaming
+- [x] Create RAG system prompt
+- [x] Build context window
+- [x] Add citation instructions
+- [x] Test prompt variations
+- [x] `POST /query/{document_id}/ask` - Ask about specific document
+- [x] `POST /query` - Ask across all documents
+- [x] Return answer with citations
+- [x] Save query history
 - [ ] `GET /documents/{id}/ask/stream` - Streaming response
 - [ ] Server-Sent Events (SSE)
 - [ ] Stream tokens in real-time
-- [ ] Create Query model (user_id, query, answer, chunks_used, created_at)
-- [ ] `GET /queries` - List user's queries
-- [ ] `GET /queries/{id}` - Get specific query
+- [x] Create Query model (user_id, query, answer, chunks_used, created_at)
+- [x] `GET /query/history` - List user's queries
+- [x] `GET /query/{id}` - Get specific query
 - [ ] Test answer quality
 - [ ] Test citations
 - [ ] Test streaming

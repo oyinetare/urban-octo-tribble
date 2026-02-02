@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from app.core import get_session, redis_service, token_manager
+from app.core import get_session, services, token_manager
 from app.core.config import get_settings
 from app.dependencies import oauth2_scheme
 from app.exceptions import (
@@ -14,7 +14,6 @@ from app.exceptions import (
     CredentialsException,
     InactiveUserException,
     UserAlreadyExistsException,
-    UserNotFoundException,
 )
 from app.models import User
 from app.schemas import Token, UserCreate, UserResponse
@@ -91,21 +90,24 @@ async def login_for_access_token(
     if not user.is_active:
         raise InactiveUserException()
 
-    # Update last_login timestamp
     user.last_login = datetime.now()
     session.add(user)
     await session.commit()
 
-    # Define scopes based on user role
+    # Access tier limit and user id for the token payload
+    # This assumes User has a relationship to Tier
+    tier_limit = user.tier.limit
     scopes = user.role.scopes
 
-    access_token = token_manager.create_access_token(data={"sub": user.username, "scopes": scopes})
-
-    refresh_token = token_manager.create_refresh_token(
-        data={"sub": user.username, "scopes": scopes}
+    # Use the new TokenManager signature
+    access_token = token_manager.create_access_token(
+        user_id=user.id, username=user.username, tier_limit=user.tier.limit, scopes=user.role.scopes
     )
 
-    # # Set refresh token in HttpOnly cookie for security
+    refresh_token = token_manager.create_refresh_token(
+        data={"sub": user.username, "id": user.id, "tier_limit": tier_limit, "scopes": scopes}
+    )
+
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
@@ -119,69 +121,66 @@ async def login_for_access_token(
 
 
 @router.post("/refresh")
-async def refresh_access_token(response: Request, session: AsyncSession = Depends(get_session)):
+async def refresh_access_token(request: Request, session: AsyncSession = Depends(get_session)):
     """Refresh the access token using the refresh token from cookie."""
     # Get refresh token from cookie
-    refresh_token = response.cookies.get("refresh_token")
+    refresh_token = request.cookies.get("refresh_token")
     if not refresh_token:
         raise CredentialsException()
 
-    # Check if token is blacklisted
-    if await redis_service.is_token_blacklisted(refresh_token):
+    # TYPE SAFE REDIS CHECK
+    redis = services.redis
+    if redis and await redis.is_token_blacklisted(refresh_token):
         raise CredentialsException()
 
-    # Decode and validate refresh token
     payload = token_manager.decode_token(refresh_token)
-    if payload is None:
+    if not payload or payload.get("type") != "refresh":
         raise CredentialsException()
 
-    token_type = payload.get("type")
-
-    if token_type != "refresh":
-        raise CredentialsException
-
-    username: str | None = payload.get("sub")
-    if username is None:
+    username = payload.get("sub")
+    if not username:
         raise CredentialsException()
 
-    # Verify user still exists and is active
+    # Refresh user to ensure we have the latest tier/role
     statement = select(User).where(User.username == username)
-    result = await session.execute(statement)
-    user = result.scalar_one_or_none()
+    user = (await session.execute(statement)).scalar_one_or_none()
 
-    if not user:
-        raise UserNotFoundException
-
-    if not user.is_active:
+    if not user or not user.is_active:
         raise InactiveUserException()
 
-    # Get scopes from refresh token or regenerate from user role
-    scopes = payload.get("scopes", user.role.scopes)
+    # Re-issue access token with updated claims
+    access_token = token_manager.create_access_token(
+        user_id=user.id, username=user.username, tier_limit=user.tier.limit, scopes=user.role.scopes
+    )
 
-    # Create new access token with scopes
-
-    access_token = token_manager.create_access_token(data={"sub": user.username, "scopes": scopes})
-
-    return Token(access_token=access_token, token_type="bearer", scopes=scopes)
+    return Token(access_token=access_token, token_type="bearer", scopes=user.role.scopes)
 
 
 @router.post("/logout")
 async def logout(request: Request, response: Response, token: str = Depends(oauth2_scheme)):
     """Logout by blacklisting tokens and clearing cookies."""
     # Blacklist the access token
-    access_token_expiry = token_manager.get_token_expiry(token)
-    if access_token_expiry:
-        expires_in = int((access_token_expiry - datetime.now()).total_seconds())
-        if expires_in > 0:
-            await redis_service.blacklist_token(token, expires_in)
+    redis = services.redis
+    if not redis:
+        return {"message": "Logout skipped: Cache unavailable"}
 
-    # Blacklist the refresh token if present
+    now = datetime.now()
+
+    # Blacklist Access Token
+    access_expiry = token_manager.get_token_expiry(token)
+    if access_expiry:
+        diff = int((access_expiry - now).total_seconds())
+        if diff > 0:
+            await redis.blacklist_token(token, diff)
+
+    # Blacklist Refresh Token
     refresh_token = request.cookies.get("refresh_token")
     if refresh_token:
-        refresh_token_expiry = token_manager.get_token_expiry(refresh_token)
-        if refresh_token_expiry:
-            expires_in = int((refresh_token_expiry - datetime.now()).total_seconds())
-            if expires_in > 0:
-                await redis_service.blacklist_token(refresh_token, expires_in)
+        refresh_expiry = token_manager.get_token_expiry(refresh_token)
+        if refresh_expiry:
+            diff = int((refresh_expiry - now).total_seconds())
+            if diff > 0:
+                await redis.blacklist_token(refresh_token, diff)
 
+    response.delete_cookie("refresh_token")
     return {"message": "Successfully logged out"}

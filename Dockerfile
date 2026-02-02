@@ -24,21 +24,37 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --no-dev
 
 # --- Stage 2: Final Runtime ---
-FROM python:3.13-slim
+FROM python:3.13-slim AS final
 
 # Set the working directory inside the container
 WORKDIR /app
 
-# Install uv in the final stage too (standard practice in 2026)
+# Non-root user for security (Production Best Practice)
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# 🔧 FIX: Create cache directories BEFORE switching to appuser
+RUN mkdir -p /app/.cache/huggingface \
+             /app/.cache/transformers \
+             /app/.cache/sentence-transformers && \
+    chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
+COPY --chown=appuser:appuser . .
 
-# Copy venv and code
-COPY --from=builder /app/.venv /app/.venv
-COPY . .
-
-# Environment setup
 ENV PATH="/app/.venv/bin:$PATH"
+# Ensures app module is found regardless of where you call it
+ENV PYTHONPATH="/app"
 ENV PYTHONUNBUFFERED=1
 
-# Use uv run to ensure the environment is activated correctly
+# 🔧 FIX: Set cache environment variables for HuggingFace/Sentence-Transformers
+ENV HF_HOME=/app/.cache/huggingface
+ENV TRANSFORMERS_CACHE=/app/.cache/transformers
+ENV SENTENCE_TRANSFORMERS_HOME=/app/.cache/sentence-transformers
+ENV XDG_CACHE_HOME=/app/.cache
+
+# Use the list form for better signal handling (SIGTERM)
 CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

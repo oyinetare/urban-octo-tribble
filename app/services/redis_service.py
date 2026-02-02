@@ -184,4 +184,4 @@ class RedisService:
 
 
 # Global singleton instance
-redis_service = RedisService()
+# redis_service = RedisService()

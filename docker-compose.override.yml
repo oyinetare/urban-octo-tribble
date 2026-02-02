@@ -8,13 +8,36 @@ services:
     volumes:
       - .:/app              # Mount local code
       - /app/.venv          # PROTECT the venv from being overwritten
+      - model_cache:/app/.cache  # 🔧 FIX: Share model cache in dev mode
     environment:
       - ENVIRONMENT=development
       - PATH=/app/.venv/bin:$PATH # Ensure PATH is set
+      # 🔧 FIX: Cache environment variables for dev
+      - HF_HOME=/app/.cache/huggingface
+      - TRANSFORMERS_CACHE=/app/.cache/transformers
+      - SENTENCE_TRANSFORMERS_HOME=/app/.cache/sentence-transformers
+      - XDG_CACHE_HOME=/app/.cache
     # Change command to use 'uv run' to be safe in 2026
     command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     ports:
       - "8000:8000"
+
+  celery-worker:
+    build:
+      context: .
+      target: builder # Use builder for dev
+    volumes:
+      - .:/app              # Mount local code
+      - /app/.venv          # PROTECT the venv
+      - model_cache:/app/.cache  # 🔧 FIX: Share model cache
+    environment:
+      - ENVIRONMENT=development
+      - PATH=/app/.venv/bin:$PATH
+      # 🔧 FIX: Cache environment variables for dev
+      - HF_HOME=/app/.cache/huggingface
+      - TRANSFORMERS_CACHE=/app/.cache/transformers
+      - SENTENCE_TRANSFORMERS_HOME=/app/.cache/sentence-transformers
+      - XDG_CACHE_HOME=/app/.cache
 
   postgres:
     # Expose ports in dev so you can use GUI tools like DBeaver
@@ -31,3 +54,8 @@ services:
     ports:
       - "9000:9000"  # API
       - "9001:9001"  # Console
+
+  qdrant:
+    ports:
+      - "6333:6333"
+      - "6334:6334"

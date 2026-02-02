@@ -12,6 +12,7 @@ from app.core import ProcessingStatus, SortOrder, get_session
 from app.dependencies import (
     get_current_user,
     get_storage_service,
+    get_vector_service,
     pagination_params,
     verify_document_ownership,
 )
@@ -30,7 +31,9 @@ from app.schemas import (
     StatsResponse,
 )
 from app.schemas.document import ProcessingStatusResponse
-from app.services import StorageAdapter, validator
+from app.services.storage import StorageAdapter
+from app.services.validators import validator
+from app.services.vector_store import VectorStoreService
 from app.utility import base62_encoder, id_generator
 
 router = APIRouter()
@@ -202,21 +205,25 @@ async def delete_document(
     document: Document = Depends(verify_document_ownership),
     session: AsyncSession = Depends(get_session),
     storage: StorageAdapter = Depends(get_storage_service),
+    vector_store: VectorStoreService = Depends(get_vector_service),
 ):
     """
     Delete a document (idempotent by design).
     Only owner can delete.
     """
+    # 1. Clean up Vector Store (Embeddings)
+    try:
+        await vector_store.delete_document(document.id)
+    except Exception as e:
+        logger.error(f"Vector delete failed for {document.id}: {e}")
 
-    # Delete file from MinIO
+    # 2. Clean up Storage (Physical File)
     try:
         await storage.delete(document.storage_key)
     except Exception as e:
-        # Log error but continue with database deletion
-        print(f"Failed to delete file from storage: {e}")
-        logger.exception(f"Failed to delete file from storage: {e}")
+        logger.warning(f"Storage delete failed for {document.storage_key}: {e}")
 
-    # Delete database record
+    # 3. Final Database removal
     try:
         await session.delete(document)
         await session.commit()
@@ -224,7 +231,7 @@ async def delete_document(
         await session.rollback()
         raise AppException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            message=f"An error occurred: {str(e)}",
+            message=f"Database error: {str(e)}",
         ) from e
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)

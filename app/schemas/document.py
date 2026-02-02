@@ -40,11 +40,16 @@ class DocumentResponse(BaseModel):
 
     id: int
     title: str
-    description: str
+    description: str | None
     owner_id: int
     created_at: datetime
+    filename: str
+    file_size: int
+    content_type: str
+    storage_key: str
     processing_status: ProcessingStatus
     processing_error: str | None = None
+    task_id: str | None = None
 
     model_config = {"from_attributes": True}
 

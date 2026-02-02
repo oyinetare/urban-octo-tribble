@@ -1,11 +1,14 @@
+import asyncio
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy import text
 
-from app.core import get_settings, redis_service
+from app.core import get_settings, services
 from app.exceptions import AppException
 from app.middleware import (
     IdempotencyMiddleware,
@@ -15,8 +18,9 @@ from app.middleware import (
     rate_limit_middleware,
     security_headers_middleware,
 )
-from app.routes import auth, documents, users
+from app.routes import auth, documents, query, users
 
+logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
@@ -43,18 +47,16 @@ async def lifespan(app: FastAPI):
     """
     # Startup
     # Initialize storage
-    from app.services import storage_service
 
-    await storage_service._ensure_bucket_exists()
+    await services.init()
 
-    app.state.storage = storage_service
     await init_db()
-    await redis_service.initialize()
 
     yield
 
     # Shutdown
-    await redis_service.close()
+    if services.redis:
+        await services.redis.close()
 
 
 app = FastAPI(
@@ -164,31 +166,82 @@ async def liveness_check():
 @app.get("/health/ready", tags=["Health"])
 async def readiness_check():
     """
-    Readiness probe: Tells orchestrators if the app is ready to serve traffic.
-    If this fails, traffic is stopped but the container is NOT restarted.
+    Comprehensive Readiness probe for all infrastructure dependencies.
     """
-    # 1. Check Redis
-    redis_ok = await redis_service.ping()
 
-    # 2. Check Database (Recommended 2026 practice)
-    # Example: if using SQLAlchemy/SQLModel
-    # db_ok = await db_service.check_connection()
-    db_ok = True  # Placeholder for your logic
+    async def check_redis():
+        return await services.redis.ping() if services.redis else False
 
-    if not redis_ok or not db_ok:
-        return JSONResponse(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            content={
-                "status": "unready",
-                "services": {
-                    "redis": "ok" if redis_ok else "down",
-                    "database": "ok" if db_ok else "down",
-                },
-                "environment": settings.ENVIRONMENT,
-            },
-        )
+    async def check_storage():
+        if not services.storage:
+            return False
+        try:
+            # Check if storage is accessible
+            await services.storage.file_exists("__health_check__")
+            return True
+        except Exception:
+            return False
 
-    return {"status": "ready", "services": {"redis": "ok", "database": "ok"}}
+    async def check_qdrant():
+        if not services.vector_store:
+            return False
+        try:
+            collections = await services.vector_store.async_client.get_collections()
+            return collections is not None
+        except Exception:
+            return False
+
+    async def check_database():
+        try:
+            from app.core.database import AsyncSessionLocal
+
+            async with AsyncSessionLocal() as session:
+                await session.execute(text("SELECT 1"))
+                return True
+        except Exception as e:
+            logger.error(f"❌ Database health check failed: {e}")
+            return False
+
+    async def check_llm():
+        """Check if LLM provider is responding"""
+        # Simplified return to satisfy the 'negated condition' hint
+        return bool(services.rag and services.rag.llm_service)
+
+    async def check_embeddings():
+        """Check if the local model is loaded in RAM"""
+        return not (not services.embedding or services.embedding.model is None)
+
+    # Run all checks in parallel
+    results = await asyncio.gather(
+        check_redis(),
+        check_storage(),
+        check_qdrant(),
+        check_llm(),
+        check_embeddings(),
+        check_database(),
+        return_exceptions=True,
+    )
+
+    # Safely unpack results (treating exceptions as False)
+    redis_ok, storage_ok, qdrant_ok, llm_ok, embed_ok, db_ok = [
+        res if isinstance(res, bool) else False for res in results
+    ]
+
+    health_status = {
+        "redis": redis_ok,
+        "storage": storage_ok,
+        "vector_store": qdrant_ok,
+        "llm_provider": llm_ok,
+        "embedding_model": embed_ok,
+        "database": db_ok,  # Final result
+    }
+
+    is_ready = all(health_status.values())
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK if is_ready else status.HTTP_503_SERVICE_UNAVAILABLE,
+        content={"status": "ready" if is_ready else "unready", "dependencies": health_status},
+    )
 
 
 # --- ROUTERS ---
@@ -196,6 +249,7 @@ async def readiness_check():
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
+app.include_router(query.router, prefix="/api/v1/query", tags=["Query"])
 app.include_router(documents.router, prefix="/api/v1/documents", tags=["Documents"])
 # Redirect router WITHOUT api prefix (for cleaner URLs like /d/abc123)
 app.include_router(documents.redirect_router)

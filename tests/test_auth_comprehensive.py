@@ -169,7 +169,12 @@ class TestAuthComprehensive:
         """Test refresh with access token instead of refresh token."""
         from app.core import token_manager
 
-        access_token = token_manager.create_access_token(data={"sub": "test", "scopes": ["read"]})
+        access_token = token_manager.create_access_token(
+            user_id=1,  # or a dummy int like 1
+            username="username",
+            tier_limit=20,
+            scopes=["read", "write"],
+        )
 
         # Set cookie on the client instance instead of per-request
         client.cookies.set("refresh_token", access_token)

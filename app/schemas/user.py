@@ -27,8 +27,8 @@ class UserResponse(BaseModel):
     username: str
     email: EmailStr
     is_active: bool
-    role: UserRole
-    tier: UserTier
+    role_name: UserRole
+    tier_name: UserTier
     created_at: datetime
 
     model_config = {"from_attributes": True}

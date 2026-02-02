@@ -28,7 +28,7 @@ class UserTier(StrEnum):
     @property
     def limit(self) -> int:
         mapping = {
-            UserTier.FREE: 10,
+            UserTier.FREE: 20,
             UserTier.PAID: 100,
             UserTier.ENTERPRISE: 1000,
         }
@@ -47,5 +47,6 @@ class SortOrder(StrEnum):
 class ProcessingStatus(StrEnum):
     PENDING = "pending"  # uploading
     PROCESSING = "processing"
+    CHUNKED = "chunked"
     COMPLETED = "completed"
     FAILED = "failed"

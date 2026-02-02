@@ -10,6 +10,7 @@ from app.schemas.document import (
     SortOrder,
 )
 from app.schemas.pagination import PaginatedResponse, PaginationParams
+from app.schemas.search import SearchRequest, SearchResponse, SearchResult
 from app.schemas.shorturl import ShortenResponse, StatsResponse
 from app.schemas.user import Token, UserCreate, UserResponse
 
@@ -25,6 +26,9 @@ __all__ = [
     "SortOrder",
     "PaginatedResponse",
     "PaginationParams",
+    "SearchRequest",
+    "SearchResponse",
+    "SearchResult",
     "ShortenResponse",
     "StatsResponse",
     "Token",

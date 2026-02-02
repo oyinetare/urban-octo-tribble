@@ -1,9 +1,10 @@
 from io import BytesIO
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import AsyncClient
 
-from app.core import redis_service
+from app.core import services
 
 
 class TestInputValidation:
@@ -314,13 +315,14 @@ class TestErrorResponses:
             email="other@example.com",
             username="otheruser",
             hashed_password=token_manager.get_password_hash("password"),
-            role="user",
+            role_name="user",
+            tier_name="free",
         )
         session.add(other_user)
         await session.commit()
 
         token = token_manager.create_access_token(
-            data={"sub": other_user.username, "scopes": ["read"]}
+            user_id=other_user.id, username=other_user.username, tier_limit=20, scopes=["read"]
         )
         headers = {"Authorization": f"Bearer {token}"}
 
@@ -429,7 +431,7 @@ class TestIdempotency:
             json={"title": "Test 2", "description": "Description 2"},
         )
 
-        if redis_service.is_available:
+        if services.redis.is_available:
             pass  # Might return 422 for body mismatch
 
     @pytest.mark.asyncio
@@ -451,29 +453,39 @@ class TestIdempotency:
 
     @pytest.mark.asyncio
     async def test_delete_is_idempotent(
-        self, client: AsyncClient, auth_headers, session, test_user
+        self, client: AsyncClient, auth_headers, test_document, storage_mock
     ):
-        """Test that DELETE requests are idempotent."""
-        from app.models import Document
+        """Test that deleting a document handles external services and returns 404 on second call."""
 
-        doc = Document(
-            title="To Delete",
-            description="Description",
-            owner_id=test_user.id,
-            filename="test.pdf",
-            storage_key="test/key",
-            file_size=1024,
-            content_type="application/pdf",
-            processing_status="pending",
-        )
-        session.add(doc)
-        await session.commit()
-        await session.refresh(doc)
+        # The storage_mock fixture already provides a MockStorageAdapter
+        # Just configure the return values on the existing mock
+        storage_mock._delete_mock.return_value = None
 
-        # Delete once
-        response1 = await client.delete(f"/api/v1/documents/{doc.id}", headers=auth_headers)
-        assert response1.status_code == 204
+        # For vector store, we need to patch the actual service instance
+        from app.core.services import services
 
-        # Delete again (should return 404)
-        response2 = await client.delete(f"/api/v1/documents/{doc.id}", headers=auth_headers)
-        assert response2.status_code == 404
+        # Create an AsyncMock for vector store delete
+        mock_vector_delete = AsyncMock(return_value=True)
+
+        # Patch the vector store's delete_document method
+        with patch.object(services.vector_store, "delete_document", mock_vector_delete):
+            # FIRST CALL: Should succeed
+            response1 = await client.delete(
+                f"/api/v1/documents/{test_document.id}", headers=auth_headers
+            )
+            assert response1.status_code == 204
+
+            # Verify storage delete was called
+            storage_mock._delete_mock.assert_called_once()
+            # Verify vector store delete was called
+            mock_vector_delete.assert_called_once_with(test_document.id)
+
+            # SECOND CALL: verify_document_ownership runs again.
+            # Since the record was deleted from the 'session' in call 1,
+            # scalar_one_or_none() returns None -> DocumentNotFoundException (404).
+            response2 = await client.delete(
+                f"/api/v1/documents/{test_document.id}", headers=auth_headers
+            )
+
+            # This is correct REST behavior: you can't 'own' what doesn't exist
+            assert response2.status_code == 404

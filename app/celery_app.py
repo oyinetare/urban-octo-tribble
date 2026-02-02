@@ -26,5 +26,5 @@ celery_app.conf.update(
     broker_connection_retry_on_startup=True,
 )
 
-# Auto-discover tasks
-celery_app.autodiscover_tasks(["app"])
+# Auto-discover tasks - this loads the tasks after the celery app is initialized, breaking the cycle
+celery_app.autodiscover_tasks(["app.tasks"])
