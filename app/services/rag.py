@@ -1,14 +1,10 @@
-"""RAG (Retrieval-Augmented Generation) service."""
-
 import asyncio
 import logging
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select
 
 from app.core.config import get_settings
-from app.models import Chunk, Document
 from app.schemas.query import Citation
 from app.services.embeddings import EmbeddingService
 from app.services.llm import LLMService
@@ -44,7 +40,6 @@ class RAGService:
     async def _retrieve_chunks(
         self,
         query: str,
-        # user_id: int,
         document_id: int | None = None,
         max_chunks: int = 5,
         min_score: float = 0.6,
@@ -67,16 +62,13 @@ class RAGService:
                 "RAGService.session is not set. Are you calling this through the dependency?"
             )
 
-        # Create a local reference that the type checker knows is not None
-        # session: AsyncSession = self.session
-
         # Ensure model is loaded
         await self.embedding_service._ensure_model_loaded()
 
         # Generate embedding (offload CPU-bound task to thread)
         query_embedding = await asyncio.to_thread(self.embedding_service.embed_text, query)
 
-        # Search with correct parameters
+        # Search Qdrant
         search_results = await self.vector_store.search(
             query_embedding=query_embedding,
             document_id=document_id,
@@ -84,37 +76,19 @@ class RAGService:
             score_threshold=min_score,
         )
 
-        # Fetch full chunk and document data
+        logger.info(f"🔍 Vector search returned {len(search_results)} results")
+
+        # Use data from Qdrant payload directly (now includes chunk_id!)
         chunks_with_metadata = []
         for result in search_results:
-            # chunk_id = result["id"]
-            # If search_results is a list of objects
-            chunk_id = getattr(result, "id", result.get("id") if isinstance(result, dict) else None)
-
-            # Get chunk from database
-            chunk_stmt = select(Chunk).where(Chunk.id == chunk_id)
-            chunk_result = await self.session.execute(chunk_stmt)
-            chunk = chunk_result.scalar_one_or_none()
-
-            if not chunk:
-                continue
-
-            # Get document
-            doc_stmt = select(Document).where(Document.id == chunk.document_id)
-            doc_result = await self.session.execute(doc_stmt)
-            document = doc_result.scalar_one_or_none()
-
-            if not document:
-                continue
-
             chunks_with_metadata.append(
                 {
-                    "chunk_id": chunk.id,
-                    "chunk_text": chunk.text,
-                    "chunk_position": chunk.position,
-                    "document_id": document.id,
-                    "document_title": document.title,
-                    "similarity_score": result["score"],
+                    "chunk_id": result.get("chunk_id"),  # Now populated from payload
+                    "chunk_text": result.get("chunk_text", ""),
+                    "chunk_position": result.get("chunk_index", 0),
+                    "document_id": result.get("document_id"),
+                    "document_title": result.get("metadata", {}).get("document_title", "Unknown"),
+                    "similarity_score": result.get("score", 0.0),
                 }
             )
 
@@ -165,7 +139,6 @@ Please answer the question based on the provided context. Include citations usin
     async def ask(
         self,
         query: str,
-        # user_id: int,
         document_id: int | None = None,
         max_chunks: int = 5,
         min_score: float = 0.6,
@@ -175,7 +148,6 @@ Please answer the question based on the provided context. Include citations usin
 
         Args:
             query: User's question
-            user_id: Current user ID
             document_id: Optional specific document
             max_chunks: Maximum chunks to use
             min_score: Minimum similarity score
@@ -186,7 +158,6 @@ Please answer the question based on the provided context. Include citations usin
         # Step 1: Retrieve relevant chunks
         chunks = await self._retrieve_chunks(
             query=query,
-            # user_id=user_id,
             document_id=document_id,
             max_chunks=max_chunks,
             min_score=min_score,
@@ -213,7 +184,7 @@ Please answer the question based on the provided context. Include citations usin
         # Step 4: Build citations
         citations = [
             Citation(
-                chunk_id=chunk["chunk_id"],
+                chunk_id=chunk.get("chunk_id"),  # Use .get() to safely handle None
                 document_id=chunk["document_id"],
                 document_title=chunk["document_title"],
                 chunk_position=chunk["chunk_position"],

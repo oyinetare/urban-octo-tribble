@@ -17,7 +17,7 @@ class QueryRequest(BaseModel):
 class Citation(BaseModel):
     """Citation information for a source chunk."""
 
-    chunk_id: int = Field(..., description="Chunk ID")
+    chunk_id: int | None = Field(None, description="Chunk ID")
     document_id: int = Field(..., description="Document ID")
     document_title: str = Field(..., description="Document title")
     chunk_position: int = Field(..., description="Position in document")

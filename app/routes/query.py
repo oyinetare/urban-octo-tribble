@@ -174,7 +174,7 @@ async def query_documents(
         document_id=request.document_id,
         query=request.query,
         answer=answer,
-        chunks_used=[c.chunk_id for c in citations],
+        chunks_used=[c.chunk_id for c in citations if c.chunk_id is not None],  # Filter None values
         llm_provider=provider,
         llm_model=model,
         tokens_used=tokens,
@@ -234,10 +234,10 @@ async def query_document(
     # Save query to database
     query_record = Query(
         user_id=current_user.id,
-        document_id=document.id,
+        document_id=request.document_id,
         query=request.query,
         answer=answer,
-        chunks_used=[c.chunk_id for c in citations],
+        chunks_used=[c.chunk_id for c in citations if c.chunk_id is not None],  # Filter None values
         llm_provider=provider,
         llm_model=model,
         tokens_used=tokens,

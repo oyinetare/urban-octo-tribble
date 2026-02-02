@@ -45,7 +45,7 @@ async def _async_embedding(self, document_id: int):
         )
 
         result = await session.execute(stmt)
-        chunks = result.scalars().all()
+        chunks = list(result.scalars().all())
 
         if not chunks:
             document.processing_status = ProcessingStatus.COMPLETED
@@ -56,17 +56,22 @@ async def _async_embedding(self, document_id: int):
         self.update_state(state="PROGRESS", meta={"step": "generating_embeddings"})
         embeddings = embedding_service.embed_batch(texts=[c.text for c in chunks], batch_size=32)
 
-        # 5. Store in vector database
+        # 5. Store in vector database with chunk IDs
         self.update_state(state="PROGRESS", meta={"step": "indexing_vectors"})
-        await vector_store.add_documents(
-            document_id=document_id,
-            chunks=[c.text for c in chunks],
-            embeddings=embeddings,
-            metadata={
-                "document_title": document.title,
-                "user_id": document.owner_id,
-            },
-        )
+
+        # Store each chunk individually with its database ID
+        for chunk, embedding in zip(chunks, embeddings, strict=True):
+            await vector_store.add_document_chunk(
+                chunk_id=chunk.id,
+                document_id=document_id,
+                chunk_text=chunk.text,
+                chunk_index=chunk.position,
+                embedding=embedding,
+                metadata={
+                    "document_title": document.title,
+                    "user_id": document.owner_id,
+                },
+            )
 
         # 6. Finalize
         document.processing_status = ProcessingStatus.COMPLETED

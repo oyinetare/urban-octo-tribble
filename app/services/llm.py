@@ -145,6 +145,9 @@ class LLMService:
         self.primary_provider = self._create_provider(settings.LLM_PROVIDER)
         self.fallback_enabled = settings.LLM_FALLBACK_ENABLED
 
+        # print("✅ LLM connected successfully")
+        # print(f"   Host: {self.primary_provider}:{settings.OLLAMA_BASE_URL}")
+
         # Create fallback provider if enabled
         self.fallback_provider = None
         if self.fallback_enabled:
