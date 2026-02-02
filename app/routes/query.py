@@ -205,7 +205,7 @@ async def query_documents(
     status_code=status.HTTP_200_OK,
     summary="Ask a question about a specific document",
     description="Ask a question about a specific document and get an AI-generated answer",
-    tags=["Documents"],
+    # tags=["Documents"],
 )
 async def query_document(
     request: QueryRequest,
@@ -529,7 +529,7 @@ async def query_documents_stream(
     "/{document_id}/ask/stream",
     summary="Ask about a specific document with streaming",
     description="Ask a question about a specific document with streaming response",
-    tags=["Documents"],
+    # tags=["Documents"],
 )
 async def query_document_stream(
     request: QueryRequest,

@@ -586,26 +586,26 @@
 **What:** Caching, cost reduction, and performance tuning
 
 ### Tasks
-- [ ] Implement Redis caching for RAG responses
-- [ ] Cache key: hash(query + document_id)
-- [ ] TTL: 1 hour
-- [ ] Cache invalidation on document update
-- [ ] Cache query embeddings (queries repeat)
-- [ ] TTL: 24 hours
-- [ ] Reduce embedding API calls
-- [ ] Filter low-relevance chunks (score < 0.7)
-- [ ] Reduce context size
-- [ ] Improve answer quality
-- [ ] Detect simple vs complex queries
-- [ ] Use cheaper models for simple queries
-- [ ] Route queries intelligently
-- [ ] Optimize Postgres connection pool
-- [ ] Optimize Redis connection pool
-- [ ] Tune pool sizes
-- [ ] Track search latency
-- [ ] Track LLM latency
-- [ ] Track cache hit rates
-- [ ] Set up alerts
+- [x] Implement Redis caching for RAG responses
+- [x] Cache key: hash(query + document_id)
+- [x] TTL: 1 hour
+- [x] Cache invalidation on document update
+- [x] Cache query embeddings (queries repeat)
+- [x] TTL: 24 hours
+- [x] Reduce embedding API calls
+- [x] Filter low-relevance chunks (score < 0.7)
+- [x] Reduce context size
+- [x] Improve answer quality
+- [x] Detect simple vs complex queries
+- [x] Use cheaper models for simple queries
+- [x] Route queries intelligently
+- [x] Optimize Postgres connection pool
+- [x] Optimize Redis connection pool
+- [x] Tune pool sizes
+- [x] Track search latency
+- [x] Track LLM latency
+- [x] Track cache hit rates
+- [x] Set up alerts
 
 ### Done When
 - [ ] Response caching works (Redis)
@@ -631,7 +631,7 @@
 - Token-based chunking with overlap
 - Vector embeddings with Sentence Transformers
 - Semantic search with Qdrant
-- RAG with Claude Sonnet 4
+- RAG with Claude Sonnet 4 & Ollama llama3.2
 - Streaming responses (SSE)
 - Hybrid search (vector + keyword)
 - Multi-layer caching
@@ -658,7 +658,7 @@
 - [ ] `search_documents` - Search user's documents
 - [ ] `query_database` - Execute read-only SQL
 - [ ] `generate_report` - Create summary reports
-- [ ] `send_notification` - Send notifications
+<!-- - [ ] `send_notification` - Send notifications -->
 - [ ] `web_search` - Search the web (optional)
 - [ ] Define agent state (messages, iterations, final_answer)
 - [ ] Create agent reasoning node

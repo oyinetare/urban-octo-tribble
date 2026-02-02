@@ -9,6 +9,16 @@ from app.schemas.document import (
     ProcessingStatusResponse,
     SortOrder,
 )
+from app.schemas.metrics import (
+    CacheHitRates,
+    CacheMetrics,
+    LatencyMetrics,
+    MetricsSummaryResponse,
+    PerformanceMetrics,
+    QueryComplexityDistribution,
+    QueryComplexityMetrics,
+    TokenUsageMetrics,
+)
 from app.schemas.pagination import PaginatedResponse, PaginationParams
 from app.schemas.search import SearchRequest, SearchResponse, SearchResult
 from app.schemas.shorturl import ShortenResponse, StatsResponse
@@ -24,6 +34,14 @@ __all__ = [
     "DocumentDownloadResponse",
     "ProcessingStatusResponse",
     "SortOrder",
+    "CacheHitRates",
+    "CacheMetrics",
+    "LatencyMetrics",
+    "MetricsSummaryResponse",
+    "PerformanceMetrics",
+    "QueryComplexityDistribution",
+    "QueryComplexityMetrics",
+    "TokenUsageMetrics",
     "PaginatedResponse",
     "PaginationParams",
     "SearchRequest",

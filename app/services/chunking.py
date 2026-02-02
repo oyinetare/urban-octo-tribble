@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Any, cast
 
 import tiktoken
@@ -6,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import delete, select
 
 from app.models import Chunk, Document
+from app.utility import utc_now
 
 
 class DocumentChunker:
@@ -109,7 +109,7 @@ class ChunkBuilder:
                 text=chunk_text,
                 position=position,
                 tokens=tokens,
-                created_at=datetime.now(),
+                created_at=utc_now(),
             )
             chunks.append(chunk)
 
