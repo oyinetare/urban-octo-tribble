@@ -15,7 +15,8 @@ from app.exceptions import (
     RequiresRoleException,
     UserNotFoundException,
 )
-from app.models import Document, User
+from app.models.document import Document
+from app.models.user import User
 from app.schemas import PaginationParams
 from app.services.embeddings import EmbeddingService
 from app.services.hybrid_search import HybridSearchService

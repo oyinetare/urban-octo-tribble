@@ -144,7 +144,6 @@ async def semantic_search(
     status_code=status.HTTP_200_OK,
     summary="Ask a question across all documents",
     description="Ask a question and get an AI-generated answer based on your documents",
-    tags=["Documents"],
 )
 async def query_documents(
     request: QueryRequest,
@@ -267,7 +266,6 @@ async def query_document(
     "/{query_id}/ask/stream",
     summary="Stream answer for a specific query",
     description="Get a streaming answer by re-running a previous query",
-    tags=["Documents"],
 )
 async def stream_query_by_id(
     query_id: int,
@@ -409,7 +407,6 @@ async def stream_query_by_id(
     "/stream",
     summary="Ask a question with streaming response",
     description="Ask a question and get a streaming AI-generated answer",
-    tags=["Documents"],
 )
 async def query_documents_stream(
     request: QueryRequest,

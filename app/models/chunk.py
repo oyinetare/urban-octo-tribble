@@ -1,10 +1,11 @@
 from typing import TYPE_CHECKING
 
+from pydantic import ConfigDict
 from sqlalchemy import BigInteger, Column, Index
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlmodel import Field, Relationship
 
-from app.models import BaseModel
+from app.models.base import BaseModel
 
 # This import only happens during type checking, not at runtime
 # standard Python pattern for avoiding circular imports while keeping type checkers happy
@@ -14,6 +15,10 @@ if TYPE_CHECKING:
 
 class Chunk(BaseModel, table=True):
     """Document chunk database model."""
+
+    __tablename__ = "chunks"
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     text: str = Field(description="The content of the chunk")
     position: int = Field(index=True, description="The sequence order within the document")
