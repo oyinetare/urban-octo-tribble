@@ -74,7 +74,7 @@ class Settings(BaseSettings):
 
     # LLM Configuration
     LLM_PROVIDER: str = Field(
-        default="anthropic", description="Primary LLM provider: 'anthropic' or 'ollama'"
+        default="ollama", description="Primary LLM provider: 'anthropic' or 'ollama'"
     )
     LLM_FALLBACK_ENABLED: bool = Field(
         default=True, description="Enable fallback to secondary LLM provider"
@@ -112,6 +112,24 @@ Rules:
 4. Be precise and concise
 5. If asked about multiple documents, clearly distinguish between sources""",
         description="System prompt for RAG",
+    )
+
+    # Hybrid Search Configuration
+    HYBRID_SEARCH_ENABLED: bool = Field(
+        default=True, description="Enable hybrid search (vector + keyword)"
+    )
+
+    HYBRID_RRF_K: int = Field(
+        default=60, description="RRF constant for reciprocal rank fusion (typically 60)"
+    )
+
+    HYBRID_FETCH_MULTIPLIER: int = Field(
+        default=4,
+        description="Multiplier for fetching results before RRF fusion (e.g., 4x the limit)",
+    )
+
+    FTS_LANGUAGE: str = Field(
+        default="english", description="PostgreSQL full-text search language configuration"
     )
 
     model_config = SettingsConfigDict(env_file=".env")

@@ -18,6 +18,7 @@ from app.exceptions import (
 from app.models import Document, User
 from app.schemas import PaginationParams
 from app.services.embeddings import EmbeddingService
+from app.services.hybrid_search import HybridSearchService
 from app.services.llm import LLMService
 from app.services.rag import RAGService
 from app.services.redis_service import RedisService
@@ -103,6 +104,26 @@ async def get_rag_service(
     return RAGService(
         vector_store=vector_store,
         llm_service=llm_service,
+        embedding_service=embedding_service,
+        session=session,
+    )
+
+
+async def get_hybrid_search_service(
+    vector_store: VectorStoreService = Depends(get_vector_service),
+    embedding_service: EmbeddingService = Depends(get_embedding_service),
+    session: AsyncSession = Depends(get_session),
+) -> HybridSearchService:
+    """
+    Get hybrid search service instance.
+
+    Dependencies:
+        - Vector store for semantic search
+        - Embedding service for query embeddings
+        - Database session for full-text search
+    """
+    return HybridSearchService(
+        vector_store=vector_store,
         embedding_service=embedding_service,
         session=session,
     )

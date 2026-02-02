@@ -197,3 +197,83 @@ Please answer the question based on the provided context. Include citations usin
         ]
 
         return answer, citations, provider, model, tokens
+
+    async def ask_stream(
+        self,
+        query: str,
+        document_id: int | None = None,
+        max_chunks: int = 5,
+        min_score: float = 0.6,
+    ):
+        """
+        Answer a question using RAG with streaming response.
+
+        Args:
+            query: User's question
+            document_id: Optional specific document
+            max_chunks: Maximum chunks to use
+            min_score: Minimum similarity score
+
+        Yields:
+            dict: Event data with different types:
+                - type: 'citations' - Initial citations before streaming starts
+                - type: 'token' - Individual text tokens
+                - type: 'usage' - Token usage statistics
+                - type: 'error' - Error information
+        """
+        # Step 1: Retrieve relevant chunks
+        chunks = await self._retrieve_chunks(
+            query=query,
+            document_id=document_id,
+            max_chunks=max_chunks,
+            min_score=min_score,
+        )
+
+        if not chunks:
+            # No relevant context found
+            yield {
+                "type": "token",
+                "data": "I couldn't find any relevant information in your documents to answer this question. "
+                "Please try rephrasing your question or ensure the relevant documents are uploaded.",
+                "provider": "none",
+                "model": "none",
+            }
+            yield {
+                "type": "citations",
+                "data": [],
+                "provider": "none",
+                "model": "none",
+            }
+            return
+
+        # Step 2: Build citations and send them first
+        citations = [
+            Citation(
+                chunk_id=chunk.get("chunk_id"),
+                document_id=chunk["document_id"],
+                document_title=chunk["document_title"],
+                chunk_position=chunk["chunk_position"],
+                similarity_score=chunk["similarity_score"],
+                text_preview=chunk["chunk_text"][:200] + "..."
+                if len(chunk["chunk_text"]) > 200
+                else chunk["chunk_text"],
+            )
+            for chunk in chunks
+        ]
+
+        # Send citations as first event
+        yield {
+            "type": "citations",
+            "data": [citation.model_dump() for citation in citations],
+        }
+
+        # Step 3: Build context and prompt
+        context = self._build_context(chunks)
+        user_prompt = self._build_prompt(query, context)
+
+        # Step 4: Stream the answer
+        async for event in self.llm_service.generate_stream(
+            system_prompt=settings.RAG_SYSTEM_PROMPT,
+            user_prompt=user_prompt,
+        ):
+            yield event
