@@ -511,9 +511,9 @@
 - [x] `POST /query` - Ask across all documents
 - [x] Return answer with citations
 - [x] Save query history
-- [ ] `GET /documents/{id}/ask/stream` - Streaming response
-- [ ] Server-Sent Events (SSE)
-- [ ] Stream tokens in real-time
+- [x] `GET /query/{id}/ask/stream` - Streaming response
+- [x] Server-Sent Events (SSE)
+- [x] Stream tokens in real-time
 - [x] Create Query model (user_id, query, answer, chunks_used, created_at)
 - [x] `GET /query/history` - List user's queries
 - [x] `GET /query/{id}` - Get specific query
@@ -523,11 +523,11 @@
 - [ ] Test edge cases (no results, ambiguous question)
 
 ### Done When
-- [ ] Can ask questions about documents
-- [ ] Answers include citations
-- [ ] Streaming works smoothly
-- [ ] Query history saved
-- [ ] Answer quality is good (manual testing)
+- [x] Can ask questions about documents
+- [x] Answers include citations
+- [x] Streaming works smoothly
+- [x] Query history saved
+- [x] Answer quality is good (manual testing)
 
 ### Interview Questions You Can Answer
 - "Explain RAG architecture"
@@ -543,23 +543,23 @@
 **What:** Combine vector + keyword search with RRF re-ranking
 
 ### Tasks
-- [ ] Add tsvector column to chunks table
-- [ ] Create GIN index for full-text search
-- [ ] Create trigger to update tsvector
-- [ ] Test FTS queries
-- [ ] Implement keyword search function
-- [ ] Support phrase search
-- [ ] Support boolean operators (AND, OR, NOT)
-- [ ] Rank results by relevance
-- [ ] Implement RRF algorithm
-- [ ] Tune k parameter (typically 60)
-- [ ] Combine scores from both searches
-- [ ] Combine vector and keyword search
-- [ ] Apply RRF to merge results
-- [ ] Return deduplicated, ranked results
-- [ ] Add hybrid_search parameter
-- [ ] Default to hybrid for best results
-- [ ] Support vector-only and keyword-only modes
+- [x] Add tsvector column to chunks table
+- [x] Create GIN index for full-text search
+- [x] Create trigger to update tsvector
+- [x] Test FTS queries
+- [x] Implement keyword search function
+- [x] Support phrase search
+- [x] Support boolean operators (AND, OR, NOT)
+- [x] Rank results by relevance
+- [x] Implement RRF algorithm
+- [x] Tune k parameter (typically 60)
+- [x] Combine scores from both searches
+- [x] Combine vector and keyword search
+- [x] Apply RRF to merge results
+- [x] Return deduplicated, ranked results
+- [x] Add hybrid_search parameter
+- [x] Default to hybrid for best results
+- [x] Support vector-only and keyword-only modes
 - [ ] Test exact match queries
 - [ ] Test semantic queries
 - [ ] Test mixed queries

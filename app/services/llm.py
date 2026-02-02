@@ -2,9 +2,11 @@
 
 import logging
 from abc import ABC, abstractmethod
+from collections.abc import AsyncGenerator
+from typing import Any
 
 import httpx
-from anthropic import Anthropic, AnthropicError
+from anthropic import AnthropicError, AsyncAnthropic
 
 from app.core.config import get_settings
 
@@ -33,6 +35,24 @@ class LLMProvider(ABC):
         pass
 
     @abstractmethod
+    async def generate_stream(
+        self, system_prompt: str, user_prompt: str, temperature: float = 0.7
+    ) -> AsyncGenerator[dict[str, Any], None]:
+        """
+        Generate a streaming response from the LLM.
+
+        Args:
+            system_prompt: System prompt for context
+            user_prompt: User's question
+            temperature: Temperature for generation (0-1)
+
+        Yields:
+            dict: Event data with 'type' and 'data' keys
+        """
+        if False:
+            yield
+
+    @abstractmethod
     def get_provider_name(self) -> str:
         """Get the provider name."""
         pass
@@ -52,7 +72,7 @@ class AnthropicProvider(LLMProvider):
         if not self.api_key:
             raise ValueError("ANTHROPIC_API_KEY is required")
 
-        self.client = Anthropic(api_key=self.api_key)
+        self.client = AsyncAnthropic(api_key=self.api_key)
         self.model = settings.ANTHROPIC_MODEL
         self.max_tokens = settings.ANTHROPIC_MAX_TOKENS
 
@@ -84,6 +104,46 @@ class AnthropicProvider(LLMProvider):
 
         except AnthropicError as e:
             logger.error(f"Anthropic API error: {e}")
+            raise
+
+    async def generate_stream(
+        self, system_prompt: str, user_prompt: str, temperature: float = 0.7
+    ) -> AsyncGenerator[dict[str, Any], None]:
+        """
+        Generate streaming response using Claude.
+
+        Yields:
+            dict: Event data with 'type' and 'data' keys
+                - type: 'token' (text chunk), 'usage' (token stats), 'error' (error info)
+                - data: The actual content
+        """
+        try:
+            async with self.client.messages.stream(
+                model=self.model,
+                max_tokens=self.max_tokens,
+                temperature=temperature,
+                system=system_prompt,
+                messages=[{"role": "user", "content": user_prompt}],
+            ) as stream:
+                async for text in stream.text_stream:
+                    yield {"type": "token", "data": text}
+
+                # Get final message for usage stats
+                final_message = await stream.get_final_message()
+                if hasattr(final_message, "usage"):
+                    yield {
+                        "type": "usage",
+                        "data": {
+                            "input_tokens": final_message.usage.input_tokens,
+                            "output_tokens": final_message.usage.output_tokens,
+                            "total_tokens": final_message.usage.input_tokens
+                            + final_message.usage.output_tokens,
+                        },
+                    }
+
+        except AnthropicError as e:
+            logger.error(f"Anthropic streaming API error: {e}")
+            yield {"type": "error", "data": str(e)}
             raise
 
     def get_provider_name(self) -> str:
@@ -124,6 +184,49 @@ class OllamaProvider(LLMProvider):
 
         except httpx.HTTPError as e:
             logger.error(f"Ollama API error: {e}")
+            raise
+
+    async def generate_stream(
+        self, system_prompt: str, user_prompt: str, temperature: float = 0.7
+    ) -> AsyncGenerator[dict[str, Any], None]:
+        """
+        Generate streaming response using Ollama.
+
+        Yields:
+            dict: Event data with 'type' and 'data' keys
+        """
+        try:
+            async with (
+                httpx.AsyncClient(timeout=self.timeout) as client,
+                client.stream(
+                    "POST",
+                    f"{self.base_url}/api/generate",
+                    json={
+                        "model": self.model,
+                        "prompt": f"{system_prompt}\n\nUser: {user_prompt}\n\nAssistant:",
+                        "stream": True,
+                        "options": {"temperature": temperature},
+                    },
+                ) as response,
+            ):
+                response.raise_for_status()
+
+                async for line in response.aiter_lines():
+                    if line:
+                        import json
+
+                        data = json.loads(line)
+
+                        if "response" in data:
+                            yield {"type": "token", "data": data["response"]}
+
+                        if data.get("done", False):
+                            # Ollama doesn't provide token counts
+                            yield {"type": "usage", "data": {"total_tokens": None}}
+
+        except httpx.HTTPError as e:
+            logger.error(f"Ollama streaming API error: {e}")
+            yield {"type": "error", "data": str(e)}
             raise
 
     def get_provider_name(self) -> str:
@@ -224,4 +327,72 @@ class LLMService:
                     ) from fallback_error
 
             # No fallback available
+            raise RuntimeError(f"LLM generation failed: {e}") from e
+
+    async def generate_stream(
+        self, system_prompt: str, user_prompt: str, temperature: float | None = None
+    ):
+        """
+        Generate streaming response with automatic fallback.
+
+        Args:
+            system_prompt: System prompt
+            user_prompt: User prompt
+            temperature: Temperature override (uses config default if None)
+
+        Yields:
+            dict: Event data with 'type', 'data', 'provider', and 'model' keys
+        """
+        temp = temperature if temperature is not None else settings.ANTHROPIC_TEMPERATURE
+
+        # Try primary provider
+        try:
+            logger.info(
+                f"Streaming with primary provider: {self.primary_provider.get_provider_name()}"
+            )
+
+            async for event in self.primary_provider.generate_stream(
+                system_prompt, user_prompt, temp
+            ):
+                # Add provider and model info to events
+                event["provider"] = self.primary_provider.get_provider_name()
+                event["model"] = self.primary_provider.get_model_name()
+                yield event
+
+        except Exception as e:
+            logger.warning(f"Primary provider streaming failed: {e}")
+
+            # Try fallback if enabled
+            if self.fallback_enabled and self.fallback_provider:
+                try:
+                    logger.info(
+                        f"Trying fallback provider: {self.fallback_provider.get_provider_name()}"
+                    )
+
+                    async for event in self.fallback_provider.generate_stream(
+                        system_prompt, user_prompt, temp
+                    ):
+                        event["provider"] = self.fallback_provider.get_provider_name()
+                        event["model"] = self.fallback_provider.get_model_name()
+                        yield event
+
+                except Exception as fallback_error:
+                    logger.error(f"Fallback provider streaming also failed: {fallback_error}")
+                    yield {
+                        "type": "error",
+                        "data": f"Both providers failed. Primary: {e}, Fallback: {fallback_error}",
+                        "provider": "none",
+                        "model": "none",
+                    }
+                    raise RuntimeError(
+                        f"Both LLM providers failed. Primary: {e}, Fallback: {fallback_error}"
+                    ) from fallback_error
+
+            # No fallback available
+            yield {
+                "type": "error",
+                "data": f"LLM generation failed: {e}",
+                "provider": "none",
+                "model": "none",
+            }
             raise RuntimeError(f"LLM generation failed: {e}") from e

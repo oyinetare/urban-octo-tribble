@@ -5,7 +5,7 @@ from sqlalchemy import BigInteger
 from sqlmodel import Field, Relationship
 
 from app.core import ProcessingStatus
-from app.models import BaseModel
+from app.models.base import BaseModel
 
 # This import only happens during type checking, not at runtime
 # standard Python pattern for avoiding circular imports while keeping type checkers happy

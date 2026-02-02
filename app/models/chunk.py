@@ -1,9 +1,11 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import BigInteger, Index
+from pydantic import ConfigDict
+from sqlalchemy import BigInteger, Column, Index
+from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlmodel import Field, Relationship
 
-from app.models import BaseModel
+from app.models.base import BaseModel
 
 # This import only happens during type checking, not at runtime
 # standard Python pattern for avoiding circular imports while keeping type checkers happy
@@ -14,10 +16,21 @@ if TYPE_CHECKING:
 class Chunk(BaseModel, table=True):
     """Document chunk database model."""
 
+    __tablename__ = "chunks"
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     text: str = Field(description="The content of the chunk")
     position: int = Field(index=True, description="The sequence order within the document")
     tokens: int = Field(description="Token count for this chunk")
     embedding_id: str | None = Field(default=None, description="Reference to the vector embedding")
+
+    # Full-text search vector (automatically maintained by PostgreSQL trigger)
+    text_vector: TSVECTOR | None = Field(
+        default=None,
+        sa_column=Column(TSVECTOR, nullable=True),
+        description="Full-text search vector (auto-updated)",
+    )
 
     document_id: int = Field(
         foreign_key="documents.id",
