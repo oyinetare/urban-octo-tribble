@@ -1,5 +1,15 @@
+"""
+RAG Service with Production Optimizations:
+- Response caching (Redis)
+- Embedding caching
+- Query classification for smart routing
+- Performance metrics tracking
+- Score filtering
+"""
+
 import asyncio
 import logging
+import time
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,6 +18,9 @@ from app.core.config import get_settings
 from app.schemas.query import Citation
 from app.services.embeddings import EmbeddingService
 from app.services.llm import LLMService
+from app.services.metrics_service import MetricsService
+from app.services.query_classifier import QueryClassifier
+from app.services.redis_service import RedisService
 from app.services.vector_store import VectorStoreService
 
 logger = logging.getLogger(__name__)
@@ -15,7 +28,7 @@ settings = get_settings()
 
 
 class RAGService:
-    """Service for RAG-based question answering."""
+    """Service for RAG-based question answering with production optimizations."""
 
     def __init__(
         self,
@@ -23,6 +36,9 @@ class RAGService:
         llm_service: LLMService,
         embedding_service: EmbeddingService,
         session: AsyncSession | None = None,
+        redis: RedisService | None = None,
+        metrics_service: MetricsService | None = None,
+        classifier: QueryClassifier | None = None,
     ):
         """
         Initialize RAG service.
@@ -30,12 +46,19 @@ class RAGService:
         Args:
             vector_store: Vector store for semantic search
             llm_service: LLM service for generation
+            embedding_service: Service for generating embeddings
             session: Database session
+            redis: Redis service for caching
+            metrics_service: Optional metrics tracking
+            classifier: Optional query classifier for smart routing
         """
         self.vector_store = vector_store
         self.llm_service = llm_service
         self.embedding_service = embedding_service
         self.session = session
+        self.redis = redis
+        self.metrics_service = metrics_service
+        self.classifier = classifier
 
     async def _retrieve_chunks(
         self,
@@ -45,11 +68,10 @@ class RAGService:
         min_score: float = 0.6,
     ) -> list[dict[str, Any]]:
         """
-        Retrieve relevant chunks using semantic search.
+        Retrieve relevant chunks using semantic search with optimizations.
 
         Args:
             query: User's question
-            user_id: Current user ID
             document_id: Optional specific document to search
             max_chunks: Maximum chunks to retrieve
             min_score: Minimum similarity score
@@ -65,8 +87,31 @@ class RAGService:
         # Ensure model is loaded
         await self.embedding_service._ensure_model_loaded()
 
-        # Generate embedding (offload CPU-bound task to thread)
-        query_embedding = await asyncio.to_thread(self.embedding_service.embed_text, query)
+        # 🔧 OPTIMIZATION 1: Try to get cached embedding
+        query_embedding = None
+
+        if self.redis and self.redis.is_available:
+            query_embedding = await self.redis.get_query_embedding(query)
+
+            if query_embedding:
+                # Cache hit - saved embedding computation
+                if self.metrics_service:
+                    await self.metrics_service.track_cache_hit("embedding")
+            else:
+                # Cache miss
+                if self.metrics_service:
+                    await self.metrics_service.track_cache_miss("embedding")
+
+        if query_embedding is None:
+            # Generate embedding (offload CPU-bound task to thread)
+            query_embedding = await asyncio.to_thread(self.embedding_service.embed_text, query)
+
+            # Cache for future use
+            if self.redis and self.redis.is_available:
+                await self.redis.set_query_embedding(query, query_embedding)
+
+        # 🔧 OPTIMIZATION 2: Track search latency
+        search_start = time.time()
 
         # Search Qdrant
         search_results = await self.vector_store.search(
@@ -76,14 +121,33 @@ class RAGService:
             score_threshold=min_score,
         )
 
-        logger.info(f"🔍 Vector search returned {len(search_results)} results")
+        search_duration = (time.time() - search_start) * 1000
+        if self.metrics_service:
+            await self.metrics_service.track_search_latency(search_duration)
 
-        # Use data from Qdrant payload directly (now includes chunk_id!)
+        logger.info(
+            f"🔍 Vector search returned {len(search_results)} results "
+            f"(took {search_duration:.0f}ms)"
+        )
+
+        # 🔧 OPTIMIZATION 3: Filter low-relevance chunks
+        # Only include chunks above min_score threshold
+        filtered_results = [
+            result for result in search_results if result.get("score", 0) >= min_score
+        ]
+
+        if len(filtered_results) < len(search_results):
+            logger.info(
+                f"📊 Filtered out {len(search_results) - len(filtered_results)} "
+                f"low-relevance chunks (score < {min_score})"
+            )
+
+        # Use data from Qdrant payload directly
         chunks_with_metadata = []
-        for result in search_results:
+        for result in filtered_results:
             chunks_with_metadata.append(
                 {
-                    "chunk_id": result.get("chunk_id"),  # Now populated from payload
+                    "chunk_id": result.get("chunk_id"),
                     "chunk_text": result.get("chunk_text", ""),
                     "chunk_position": result.get("chunk_index", 0),
                     "document_id": result.get("document_id"),
@@ -95,15 +159,7 @@ class RAGService:
         return chunks_with_metadata
 
     def _build_context(self, chunks: list[dict[str, Any]]) -> str:
-        """
-        Build context string from retrieved chunks.
-
-        Args:
-            chunks: List of chunk dictionaries
-
-        Returns:
-            Formatted context string
-        """
+        """Build context string from retrieved chunks."""
         if not chunks:
             return "No relevant context found."
 
@@ -119,16 +175,7 @@ class RAGService:
         return "\n".join(context_parts)
 
     def _build_prompt(self, query: str, context: str) -> str:
-        """
-        Build user prompt with context.
-
-        Args:
-            query: User's question
-            context: Retrieved context
-
-        Returns:
-            Formatted prompt
-        """
+        """Build user prompt with context."""
         return f"""Context:
 {context}
 
@@ -144,7 +191,7 @@ Please answer the question based on the provided context. Include citations usin
         min_score: float = 0.6,
     ) -> tuple[str, list[Citation], str, str, int | None]:
         """
-        Answer a question using RAG.
+        Answer a question using RAG with production optimizations.
 
         Args:
             query: User's question
@@ -155,6 +202,35 @@ Please answer the question based on the provided context. Include citations usin
         Returns:
             Tuple of (answer, citations, provider, model, tokens_used)
         """
+        # 🔧 OPTIMIZATION 4: Try cache first
+        if self.redis and self.redis.is_available:
+            cached_response = await self.redis.get_rag_response(
+                query, document_id, max_chunks, min_score
+            )
+
+            if cached_response:
+                # Cache hit - return cached response
+                if self.metrics_service:
+                    await self.metrics_service.track_cache_hit("rag_response")
+
+                logger.info(f"✅ Returning cached response for: {query[:50]}...")
+                return (
+                    cached_response["answer"],
+                    [Citation(**c) for c in cached_response["citations"]],
+                    cached_response["provider"],
+                    cached_response["model"],
+                    cached_response.get("tokens_used"),
+                )
+
+            # Cache miss
+            if self.metrics_service:
+                await self.metrics_service.track_cache_miss("rag_response")
+
+        # 🔧 OPTIMIZATION 5: Classify query complexity
+        if self.classifier and self.metrics_service:
+            complexity = self.classifier.classify(query)
+            await self.metrics_service.track_query_complexity(complexity)
+
         # Step 1: Retrieve relevant chunks
         chunks = await self._retrieve_chunks(
             query=query,
@@ -176,15 +252,25 @@ Please answer the question based on the provided context. Include citations usin
         user_prompt = self._build_prompt(query, context)
 
         # Step 3: Generate answer
+        llm_start = time.time()
+
         answer, provider, model, tokens = await self.llm_service.generate(
             system_prompt=settings.RAG_SYSTEM_PROMPT,
             user_prompt=user_prompt,
         )
 
+        llm_duration = (time.time() - llm_start) * 1000
+
+        # 🔧 OPTIMIZATION 6: Track metrics
+        if self.metrics_service:
+            await self.metrics_service.track_llm_latency(llm_duration, provider)
+            if tokens:
+                await self.metrics_service.track_tokens_used(tokens, provider)
+
         # Step 4: Build citations
         citations = [
             Citation(
-                chunk_id=chunk.get("chunk_id"),  # Use .get() to safely handle None
+                chunk_id=chunk.get("chunk_id"),
                 document_id=chunk["document_id"],
                 document_title=chunk["document_title"],
                 chunk_position=chunk["chunk_position"],
@@ -195,6 +281,17 @@ Please answer the question based on the provided context. Include citations usin
             )
             for chunk in chunks
         ]
+
+        # 🔧 OPTIMIZATION 7: Cache response
+        if self.redis and self.redis.is_available:
+            cache_data = {
+                "answer": answer,
+                "citations": [c.model_dump() for c in citations],
+                "provider": provider,
+                "model": model,
+                "tokens_used": tokens,
+            }
+            await self.redis.set_rag_response(query, document_id, max_chunks, min_score, cache_data)
 
         return answer, citations, provider, model, tokens
 
@@ -208,19 +305,13 @@ Please answer the question based on the provided context. Include citations usin
         """
         Answer a question using RAG with streaming response.
 
-        Args:
-            query: User's question
-            document_id: Optional specific document
-            max_chunks: Maximum chunks to use
-            min_score: Minimum similarity score
-
-        Yields:
-            dict: Event data with different types:
-                - type: 'citations' - Initial citations before streaming starts
-                - type: 'token' - Individual text tokens
-                - type: 'usage' - Token usage statistics
-                - type: 'error' - Error information
+        NOTE: Streaming responses bypass cache (can't cache incomplete streams).
         """
+        # Track query complexity
+        if self.classifier and self.metrics_service:
+            complexity = self.classifier.classify(query)
+            await self.metrics_service.track_query_complexity(complexity)
+
         # Step 1: Retrieve relevant chunks
         chunks = await self._retrieve_chunks(
             query=query,
@@ -230,7 +321,6 @@ Please answer the question based on the provided context. Include citations usin
         )
 
         if not chunks:
-            # No relevant context found
             yield {
                 "type": "token",
                 "data": "I couldn't find any relevant information in your documents to answer this question. "
@@ -261,7 +351,6 @@ Please answer the question based on the provided context. Include citations usin
             for chunk in chunks
         ]
 
-        # Send citations as first event
         yield {
             "type": "citations",
             "data": [citation.model_dump() for citation in citations],
@@ -272,8 +361,22 @@ Please answer the question based on the provided context. Include citations usin
         user_prompt = self._build_prompt(query, context)
 
         # Step 4: Stream the answer
+        llm_start = time.time()
+        total_tokens = None
+        provider = "none"
+
         async for event in self.llm_service.generate_stream(
             system_prompt=settings.RAG_SYSTEM_PROMPT,
             user_prompt=user_prompt,
         ):
+            if event.get("type") == "usage":
+                total_tokens = event.get("data", {}).get("total_tokens")
+            provider = event.get("provider", "none")
             yield event
+
+        # Track metrics
+        llm_duration = (time.time() - llm_start) * 1000
+        if self.metrics_service:
+            await self.metrics_service.track_llm_latency(llm_duration, provider)
+            if total_tokens:
+                await self.metrics_service.track_tokens_used(total_tokens, provider)

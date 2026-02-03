@@ -2,10 +2,12 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
+from sqlalchemy import DateTime
 from sqlmodel import Field, Relationship
 
 from app.core import UserRole, UserTier
 from app.models.base import BaseModel
+from app.utility import utc_now
 
 # This import only happens during type checking, not at runtime
 # standard Python pattern for avoiding circular imports while keeping type checkers happy
@@ -33,7 +35,10 @@ class User(BaseModel, table=True):
     )
 
     # Timestamps
-    last_login: datetime = Field(default_factory=datetime.now)
+    last_login: datetime = Field(
+        default_factory=utc_now,
+        sa_type=DateTime(timezone=True),  # ty:ignore[invalid-argument-type]
+    )
 
     # Relationships
     documents: list["Document"] = Relationship(back_populates="owner")

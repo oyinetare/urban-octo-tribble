@@ -44,12 +44,6 @@ class Query(BaseModel, table=True):
     tokens_used: int | None = Field(default=None, description="Total tokens consumed")
     response_time_ms: int | None = Field(default=None, description="Response time in milliseconds")
 
-    # Timestamps
-    # created_at: datetime = Field(
-    #     default_factory=lambda: datetime.now(UTC),
-    #     description="When query was created",
-    # )
-
     # Relationships
     user: "User" = Relationship(back_populates="queries")
     document: "Document" = Relationship(back_populates="queries")

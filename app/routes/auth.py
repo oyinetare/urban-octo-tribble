@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.exc import IntegrityError
@@ -17,6 +15,7 @@ from app.exceptions import (
 )
 from app.models import User
 from app.schemas import Token, UserCreate, UserResponse
+from app.utility import utc_now
 
 router = APIRouter()
 settings = get_settings()
@@ -90,7 +89,7 @@ async def login_for_access_token(
     if not user.is_active:
         raise InactiveUserException()
 
-    user.last_login = datetime.now()
+    user.last_login = utc_now()
     session.add(user)
     await session.commit()
 
@@ -101,11 +100,11 @@ async def login_for_access_token(
 
     # Use the new TokenManager signature
     access_token = token_manager.create_access_token(
-        user_id=user.id, username=user.username, tier_limit=user.tier.limit, scopes=user.role.scopes
+        user_id=user.id, username=user.username, tier_limit=tier_limit, scopes=scopes
     )
 
     refresh_token = token_manager.create_refresh_token(
-        data={"sub": user.username, "id": user.id, "tier_limit": tier_limit, "scopes": scopes}
+        user_id=user.id, username=user.username, scopes=scopes
     )
 
     response.set_cookie(
@@ -164,7 +163,7 @@ async def logout(request: Request, response: Response, token: str = Depends(oaut
     if not redis:
         return {"message": "Logout skipped: Cache unavailable"}
 
-    now = datetime.now()
+    now = utc_now()
 
     # Blacklist Access Token
     access_expiry = token_manager.get_token_expiry(token)

@@ -18,7 +18,7 @@ from app.middleware import (
     rate_limit_middleware,
     security_headers_middleware,
 )
-from app.routes import auth, documents, query, users
+from app.routes import auth, documents, metrics, query, users
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -211,6 +211,10 @@ async def readiness_check():
         """Check if the local model is loaded in RAM"""
         return not (not services.embedding or services.embedding.model is None)
 
+    async def check_metrics():
+        """Check if the performance metrics is ready"""
+        return not (not services.metrics or services.metrics.is_available is False)
+
     # Run all checks in parallel
     results = await asyncio.gather(
         check_redis(),
@@ -219,11 +223,12 @@ async def readiness_check():
         check_llm(),
         check_embeddings(),
         check_database(),
+        check_metrics(),
         return_exceptions=True,
     )
 
     # Safely unpack results (treating exceptions as False)
-    redis_ok, storage_ok, qdrant_ok, llm_ok, embed_ok, db_ok = [
+    redis_ok, storage_ok, qdrant_ok, llm_ok, embed_ok, metrics_ok, db_ok = [
         res if isinstance(res, bool) else False for res in results
     ]
 
@@ -233,7 +238,8 @@ async def readiness_check():
         "vector_store": qdrant_ok,
         "llm_provider": llm_ok,
         "embedding_model": embed_ok,
-        "database": db_ok,  # Final result
+        "metrics": metrics_ok,
+        "database": db_ok,
     }
 
     is_ready = all(health_status.values())
@@ -249,6 +255,7 @@ async def readiness_check():
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
+app.include_router(metrics.router, prefix="/api/v1/metrics", tags=["Metrics"])
 app.include_router(query.router, prefix="/api/v1/query", tags=["Query"])
 app.include_router(documents.router, prefix="/api/v1/documents", tags=["Documents"])
 # Redirect router WITHOUT api prefix (for cleaner URLs like /d/abc123)

@@ -130,7 +130,7 @@ TOKEN=$(curl -c cookies.txt -s -X POST http://localhost:8000/api/v1/auth/login \
 
 ####
 # 2.1 Refresh token
-TOKEN=$(curl -b cookies.txt -s -X POST http://localhost:8000/api/v1/v1/auth/refresh | jq -r '.access_token')
+TOKEN=$(curl -b cookies.txt -s -X POST http://localhost:8000/api/v1/auth/refresh | jq -r '.access_token')
 
 # curl -b cookies.txt -X POST http://localhost:8000/api/v1/auth/refresh | jq
 

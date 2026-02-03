@@ -218,4 +218,4 @@ cookies.txt
 # MinIO data (if running locally without Docker)
 minio_data/
 
-_test_documents
+_test_docs
