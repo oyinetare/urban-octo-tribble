@@ -78,18 +78,6 @@ async def get_services():
     return services
 
 
-# async def get_rag_service(session: AsyncSession = Depends(get_session)) -> RAGService:
-#     if not services.rag:
-#         await services.init()
-
-#     # This check narrow 'services.rag' from 'RAGService | None' to just 'RAGService'
-#     if services.rag is None:
-#         raise AppException(status_code=500, message="RAG Service unavailable")
-
-#     services.rag.session = session
-#     return services.rag
-
-
 async def get_llm_service() -> LLMService:
     """Dependency to get LLM service."""
     return LLMService()
@@ -101,12 +89,26 @@ async def get_rag_service(
     llm_service: LLMService = Depends(get_llm_service),
     session: AsyncSession = Depends(get_session),
 ) -> RAGService:
-    """Dependency to get RAG service."""
+    """
+    Dependency to get RAG service with production optimizations.
+
+    This creates a new RAGService instance per request but includes
+    the shared Redis, metrics, and classifier services for caching
+    and performance tracking.
+    """
+    # Ensure services are initialized
+    if not services.redis or not services.metrics or not services.classifier:
+        await services.init()
+
     return RAGService(
         vector_store=vector_store,
         llm_service=llm_service,
         embedding_service=embedding_service,
         session=session,
+        # ✅ Add optimization services
+        redis=services.redis,
+        metrics_service=services.metrics,
+        classifier=services.classifier,
     )
 
 
