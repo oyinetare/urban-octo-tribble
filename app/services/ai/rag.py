@@ -16,12 +16,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.schemas.query import Citation
-from app.services.embeddings import EmbeddingService
-from app.services.llm import LLMService
-from app.services.metrics_service import MetricsService
-from app.services.query_classifier import QueryClassifier
-from app.services.redis_service import RedisService
-from app.services.vector_store import VectorStoreService
+from app.services.ai.embeddings import EmbeddingService
+from app.services.ai.llm import LLMService
+from app.services.ai.query_classifier import QueryClassifier
+from app.services.ai.vector_store import VectorStoreService
+from app.services.optimization.metrics_service import MetricsService
+from app.services.optimization.redis_service import RedisService
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -189,7 +189,7 @@ Please answer the question based on the provided context. Include citations usin
         document_id: int | None = None,
         max_chunks: int = 5,
         min_score: float = 0.6,
-    ) -> tuple[str, list[Citation], str, str, int | None]:
+    ) -> tuple[str, list[Citation], str, str, int | None, bool]:
         """
         Answer a question using RAG with production optimizations.
 
@@ -220,6 +220,7 @@ Please answer the question based on the provided context. Include citations usin
                     cached_response["provider"],
                     cached_response["model"],
                     cached_response.get("tokens_used"),
+                    True,
                 )
 
             # Cache miss
@@ -245,7 +246,7 @@ Please answer the question based on the provided context. Include citations usin
                 "I couldn't find any relevant information in your documents to answer this question. "
                 "Please try rephrasing your question or ensure the relevant documents are uploaded."
             )
-            return answer, [], "none", "none", None
+            return answer, [], "none", "none", None, False
 
         # Step 2: Build context and prompt
         context = self._build_context(chunks)
@@ -293,7 +294,7 @@ Please answer the question based on the provided context. Include citations usin
             }
             await self.redis.set_rag_response(query, document_id, max_chunks, min_score, cache_data)
 
-        return answer, citations, provider, model, tokens
+        return answer, citations, provider, model, tokens, False
 
     async def ask_stream(
         self,

@@ -14,8 +14,14 @@ from app.exceptions import (
     UserAlreadyExistsException,
 )
 from app.models import User
-from app.schemas import Token, UserCreate, UserResponse
-from app.utility import utc_now
+from app.schemas.events import (
+    UserLoginData,
+    UserLoginEvent,
+    UserRegisteredData,
+    UserRegisteredEvent,
+)
+from app.schemas.user import Token, UserCreate, UserResponse
+from app.utility import id_generator, utc_now
 
 router = APIRouter()
 settings = get_settings()
@@ -48,6 +54,21 @@ async def register(user_data: UserCreate, session: AsyncSession = Depends(get_se
         session.add(user)
         await session.commit()
         await session.refresh(user)
+
+        if services.events:
+            await services.events.publish(
+                UserRegisteredEvent(
+                    event_id=id_generator.generate(),
+                    timestamp=utc_now(),
+                    user_id=user.id,
+                    data=UserRegisteredData(
+                        username=user.username,
+                        email=user.email,
+                        tier=user.tier.name,
+                        role=user.role.name,
+                    ),
+                )
+            )
 
         return user
 
@@ -116,6 +137,19 @@ async def login_for_access_token(
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,  # seconds
     )
 
+    if services.events:
+        await services.events.publish(
+            UserLoginEvent(
+                event_id=id_generator.generate(),
+                timestamp=utc_now(),
+                user_id=user.id,
+                data=UserLoginData(
+                    username=user.username,
+                    tier=user.tier.name,
+                ),
+            )
+        )
+
     return Token(access_token=access_token, token_type="bearer", scopes=scopes)
 
 
@@ -182,4 +216,15 @@ async def logout(request: Request, response: Response, token: str = Depends(oaut
                 await redis.blacklist_token(refresh_token, diff)
 
     response.delete_cookie("refresh_token")
+
+    # if services.events:
+    #     await services.events.publish(
+    #         UserLogoutEvent(
+    #             event_id=id_generator.generate(),
+    #             timestamp=utc_now(),
+    #             data=UserLogoutData(
+    #                 username=user.username,
+    #             ),
+    #         )
+    #     )
     return {"message": "Successfully logged out"}

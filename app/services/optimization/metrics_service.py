@@ -14,7 +14,7 @@ import time
 from contextlib import asynccontextmanager
 from typing import Any
 
-from app.services.redis_service import RedisService
+from app.services.optimization.redis_service import RedisService
 
 logger = logging.getLogger(__name__)
 

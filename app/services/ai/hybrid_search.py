@@ -13,8 +13,8 @@ from sqlmodel import col, func, select, text
 
 from app.core.config import get_settings
 from app.models.chunk import Chunk
-from app.services.embeddings import EmbeddingService
-from app.services.vector_store import VectorStoreService
+from app.services.ai.embeddings import EmbeddingService
+from app.services.ai.vector_store import VectorStoreService
 
 logger = logging.getLogger(__name__)
 settings = get_settings()

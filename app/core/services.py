@@ -5,18 +5,20 @@ Adds:
 - Redis for caching (integrated into RedisService)
 - MetricsService for performance tracking
 - QueryClassifier for smart routing
+- EventProducer for event streaming
 """
 
 import logging
 
 from app.core.config import get_settings
-from app.services.embeddings import EmbeddingService
-from app.services.metrics_service import MetricsService
-from app.services.query_classifier import QueryClassifier
-from app.services.rag import RAGService
-from app.services.redis_service import RedisService
+from app.services.ai.embeddings import EmbeddingService
+from app.services.ai.query_classifier import QueryClassifier
+from app.services.ai.rag import RAGService
+from app.services.ai.vector_store import VectorStoreService
+from app.services.events import EventProducer
+from app.services.optimization.metrics_service import MetricsService
+from app.services.optimization.redis_service import RedisService
 from app.services.storage import MinIOAdapter, StorageAdapter
-from app.services.vector_store import VectorStoreService
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -32,6 +34,9 @@ class Services:
     # Optimization services
     metrics: MetricsService | None = None
     classifier: QueryClassifier | None = None
+
+    # Event streaming
+    events: EventProducer | None = None
 
     @classmethod
     async def init(cls):
@@ -68,7 +73,20 @@ class Services:
                 logger.error(f"❌ Query classifier initialization failed: {e}")
                 cls.classifier = None
 
-        # 4. Storage
+        # 4. Initialize event producer (no dependencies)
+        if cls.events is None:
+            try:
+                cls.events = EventProducer()
+                await cls.events.initialize()
+                if cls.events.is_initialized:
+                    logger.info("✅ Event producer initialized successfully")
+                else:
+                    logger.warning("⚠️  Event producer disabled or failed to initialize")
+            except Exception as e:
+                logger.error(f"❌ Event producer initialization failed: {e}")
+                cls.events = None
+
+        # 5. Storage
         if cls.storage is None:
             try:
                 cls.storage = MinIOAdapter(
@@ -84,7 +102,7 @@ class Services:
                 logger.error(f"❌ Storage initialization failed: {e}")
                 cls.storage = None
 
-        # 5. Embedding
+        # 6. Embedding
         if cls.embedding is None:
             try:
                 cls.embedding = EmbeddingService(model_name=settings.EMBEDDING_MODEL)
@@ -94,7 +112,7 @@ class Services:
                 logger.error(f"❌ Embedding initialization failed: {e}")
                 cls.embedding = None
 
-        # 6. Vector Store
+        # 7. Vector Store
         if cls.vector_store is None:
             if cls.embedding is None:
                 logger.error("❌ Cannot initialize vector store without embedding service")
@@ -120,13 +138,13 @@ class Services:
                 logger.error(traceback.format_exc())
                 cls.vector_store = None
 
-        # 7. RAG Service (with optimizations)
+        # 8. RAG Service (with optimizations)
         if cls.rag is None:
             assert cls.vector_store is not None, "VectorStore must be initialized"
             assert cls.embedding is not None, "Embedding must be initialized"
 
             try:
-                from app.services.llm import LLMService
+                from app.services.ai.llm import LLMService
 
                 llm = LLMService()
 
@@ -163,6 +181,21 @@ class Services:
                 import traceback
 
                 logger.error(traceback.format_exc())
+
+    @classmethod
+    async def shutdown(cls):
+        """Gracefully shutdown all services"""
+        logger.info("🔄 Shutting down services...")
+
+        # Close event producer
+        if cls.events:
+            await cls.events.close()
+
+        # Close Redis
+        if cls.redis:
+            await cls.redis.close()
+
+        logger.info("✅ All services shut down")
 
 
 services = Services()

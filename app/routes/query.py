@@ -9,7 +9,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import desc, select
 
-from app.core import get_session
+from app.core import get_session, services
 from app.dependencies import (
     get_current_user,
     get_embedding_service,
@@ -21,12 +21,14 @@ from app.dependencies import (
 )
 from app.models import Document, Query, User
 from app.schemas import PaginatedResponse, PaginationParams
+from app.schemas.events import QueryExecutedData, QueryExecutedEvent
 from app.schemas.query import QueryHistoryResponse, QueryRequest, QueryResponse
 from app.schemas.search import SearchRequest, SearchResponse, SearchResult
-from app.services.embeddings import EmbeddingService
-from app.services.hybrid_search import HybridSearchService
-from app.services.rag import RAGService
-from app.services.vector_store import VectorStoreService
+from app.services.ai.embeddings import EmbeddingService
+from app.services.ai.hybrid_search import HybridSearchService
+from app.services.ai.rag import RAGService
+from app.services.ai.vector_store import VectorStoreService
+from app.utility import id_generator, utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -163,7 +165,7 @@ async def query_documents(
     start_time = time.time()
 
     # Generate answer
-    answer, citations, provider, model, tokens = await rag_service.ask(
+    answer, citations, provider, model, tokens, cache_hit = await rag_service.ask(
         query=request.query,
         # user_id=current_user.id,
         document_id=request.document_id,
@@ -187,6 +189,27 @@ async def query_documents(
     )
     session.add(query_record)
     await session.commit()
+
+    if services.events:
+        await services.events.publish(
+            QueryExecutedEvent(
+                event_id=id_generator.generate(),
+                timestamp=utc_now(),
+                user_id=current_user.id,
+                data=QueryExecutedData(
+                    query_id=query_record.id,
+                    document_id=request.document_id,
+                    query_text=request.query,
+                    answer_length=len(answer),
+                    chunks_used=len(citations),
+                    llm_provider=provider,
+                    llm_model=model,
+                    tokens_used=tokens,
+                    response_time_ms=response_time_ms,
+                    cache_hit=cache_hit,
+                ),
+            )
+        )
 
     return QueryResponse(
         query=request.query,
@@ -226,7 +249,7 @@ async def query_document(
     start_time = time.time()
 
     # Override document_id from request with verified document
-    answer, citations, provider, model, tokens = await rag_service.ask(
+    answer, citations, provider, model, tokens, cache_hit = await rag_service.ask(
         query=request.query,
         # user_id=current_user.id,
         document_id=document.id,
@@ -250,6 +273,27 @@ async def query_document(
     )
     session.add(query_record)
     await session.commit()
+
+    if services.events:
+        await services.events.publish(
+            QueryExecutedEvent(
+                event_id=id_generator.generate(),
+                timestamp=utc_now(),
+                user_id=current_user.id,
+                data=QueryExecutedData(
+                    query_id=query_record.id,
+                    document_id=request.document_id,
+                    query_text=request.query,
+                    answer_length=len(answer),
+                    chunks_used=len(citations),
+                    llm_provider=provider,
+                    llm_model=model,
+                    tokens_used=tokens,
+                    response_time_ms=response_time_ms,
+                    cache_hit=cache_hit,
+                ),
+            )
+        )
 
     return QueryResponse(
         query=request.query,
