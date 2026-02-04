@@ -132,6 +132,23 @@ Rules:
         default="english", description="PostgreSQL full-text search language configuration"
     )
 
+    # Event Streaming (Kafka/Redpanda)
+    KAFKA_BOOTSTRAP_SERVERS: str = Field(
+        default="localhost:19092", description="Kafka/Redpanda bootstrap servers (comma-separated)"
+    )
+    KAFKA_EVENTS_TOPIC: str = Field(
+        default="document-events", description="Topic for document lifecycle events"
+    )
+    KAFKA_ANALYTICS_TOPIC: str = Field(
+        default="analytics-events", description="Topic for analytics events"
+    )
+    KAFKA_CONSUMER_GROUP: str = Field(
+        default="urban-octo-tribble-consumers", description="Consumer group ID"
+    )
+    KAFKA_ENABLE_EVENTS: bool = Field(
+        default=True, description="Enable event publishing (disable for testing)"
+    )
+
     model_config = SettingsConfigDict(env_file=".env")
 
 

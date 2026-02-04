@@ -12,7 +12,6 @@ from app.core import get_settings, services
 from app.exceptions import AppException
 from app.middleware import (
     IdempotencyMiddleware,
-    # VersioningMiddleware,
     https_redirect_middleware,
     log_requests_middleware,
     rate_limit_middleware,
@@ -26,8 +25,6 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    from app.core import init_db
-
     """
     https://uvicorn.dev/concepts/lifespan/
 
@@ -40,23 +37,36 @@ async def lifespan(app: FastAPI):
     Keep in mind that the lifespan is executed only once per application instance. If you have multiple workers, each worker will execute the lifespan independently.
 
     Startup:
-    - Initialize connections
+    - Initialize all services (storage, AI, events, etc.)
+    - Initialize database
 
     Shutdown:
-    - Close connections
+    - Close event producer gracefully
+    - Close Redis connections
+    - Clean up resources
     """
-    # Startup
-    # Initialize storage
+    # ========== STARTUP ==========
+    logger.info("🚀 Starting application...")
 
+    # Initialize all services (including events)
     await services.init()
+
+    # Initialize database
+    from app.core import init_db
 
     await init_db()
 
+    logger.info("✅ Application started successfully")
+
     yield
 
-    # Shutdown
-    if services.redis:
-        await services.redis.close()
+    # ========== SHUTDOWN ==========
+    logger.info("🛑 Shutting down application...")
+
+    # Gracefully shutdown services
+    await services.shutdown()
+
+    logger.info("✅ Application shutdown complete")
 
 
 app = FastAPI(
@@ -98,22 +108,19 @@ app.add_middleware(
 # 3. Trusted Host
 app.add_middleware(
     TrustedHostMiddleware,  # type: ignore[arg-type]
-    allowed_hosts=["localhost", "127.0.0.1", "testserver"],  # Ensure testserver is here
+    allowed_hosts=["localhost", "127.0.0.1", "testserver"],
 )
 
 # 4. Security Headers
 app.middleware("http")(security_headers_middleware)
 
-# 5. Versioning Headers
-# app.add_middleware(VersioningMiddleware)
-
-# 6. Idempotency (for POST requests)
+# 5. Idempotency (for POST requests)
 app.add_middleware(IdempotencyMiddleware, ttl_seconds=86400)  # type: ignore[arg-type]
 
-# 7. Logging
+# 6. Logging
 app.middleware("http")(log_requests_middleware)
 
-# 8. Rate Limiting
+# 7. Rate Limiting
 app.middleware("http")(rate_limit_middleware)
 
 
@@ -155,6 +162,7 @@ def root():
     return {
         "message": "Welcome to urban-octo-tribble API",
         "version": "1.0.0",
+        "features": ["RAG", "Vector Search", "Event Streaming, Rate Limiting"],
     }
 
 
@@ -165,9 +173,7 @@ async def liveness_check():
 
 @app.get("/health/ready", tags=["Health"])
 async def readiness_check():
-    """
-    Comprehensive Readiness probe for all infrastructure dependencies.
-    """
+    """Comprehensive readiness probe for all infrastructure dependencies."""
 
     async def check_redis():
         return await services.redis.ping() if services.redis else False
@@ -176,7 +182,6 @@ async def readiness_check():
         if not services.storage:
             return False
         try:
-            # Check if storage is accessible
             await services.storage.file_exists("__health_check__")
             return True
         except Exception:
@@ -215,6 +220,10 @@ async def readiness_check():
         """Check if the performance metrics is ready"""
         return not (not services.metrics or services.metrics.is_available is False)
 
+    async def check_events():
+        """Check if event producer is initialized and ready."""
+        return bool(services.events and services.events.is_initialized)
+
     # Run all checks in parallel
     results = await asyncio.gather(
         check_redis(),
@@ -224,13 +233,21 @@ async def readiness_check():
         check_embeddings(),
         check_database(),
         check_metrics(),
+        check_events(),
         return_exceptions=True,
     )
 
-    # Safely unpack results (treating exceptions as False)
-    redis_ok, storage_ok, qdrant_ok, llm_ok, embed_ok, metrics_ok, db_ok = [
-        res if isinstance(res, bool) else False for res in results
-    ]
+    # Safely unpack results
+    (
+        redis_ok,
+        storage_ok,
+        qdrant_ok,
+        llm_ok,
+        embed_ok,
+        db_ok,
+        metrics_ok,
+        events_ok,
+    ) = [res if isinstance(res, bool) else False for res in results]
 
     health_status = {
         "redis": redis_ok,
@@ -240,6 +257,7 @@ async def readiness_check():
         "embedding_model": embed_ok,
         "metrics": metrics_ok,
         "database": db_ok,
+        "events": events_ok,
     }
 
     is_ready = all(health_status.values())
@@ -251,7 +269,6 @@ async def readiness_check():
 
 
 # --- ROUTERS ---
-
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])

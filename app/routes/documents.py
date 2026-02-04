@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col, select
 
 from app.celery_app import celery_app
-from app.core import ProcessingStatus, SortOrder, get_session
+from app.core import ProcessingStatus, SortOrder, get_session, services
 from app.dependencies import (
     get_current_user,
     get_storage_service,
@@ -18,23 +18,33 @@ from app.dependencies import (
 )
 from app.exceptions import AppException, InvalidFileException
 from app.models import Document, ShortURL, User
-from app.schemas import (
+from app.schemas.document import (
     DocumentCreate,
     DocumentDownloadResponse,
     DocumentFilterParams,
     DocumentResponse,
     DocumentUpdate,
     DocumentUploadResponse,
+    ProcessingStatusResponse,
+)
+from app.schemas.events import (
+    DocumentDeletedData,
+    DocumentDeletedEvent,
+    DocumentUploadedData,
+    DocumentUploadedEvent,
+)
+from app.schemas.pagination import (
     PaginatedResponse,
     PaginationParams,
+)
+from app.schemas.shorturl import (
     ShortenResponse,
     StatsResponse,
 )
-from app.schemas.document import ProcessingStatusResponse
+from app.services.ai.vector_store import VectorStoreService
 from app.services.storage import StorageAdapter
-from app.services.validators import validator
-from app.services.vector_store import VectorStoreService
-from app.utility import base62_encoder, id_generator
+from app.services.validation import validator
+from app.utility import base62_encoder, id_generator, utc_now
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -132,6 +142,22 @@ async def upload_document(
         document.task_id = task.id
         await session.commit()
 
+        #  PUBLISH EVENT: Document uploaded
+        if services.events:
+            event = DocumentUploadedEvent(
+                event_id=id_generator.generate(),
+                timestamp=utc_now(),
+                user_id=current_user.id,
+                data=DocumentUploadedData(
+                    document_id=document.id,
+                    title=document.title,
+                    filename=document.filename,
+                    file_size=document.file_size,
+                    content_type=document.content_type or "unknown",
+                ),
+            )
+            await services.events.publish(event)
+
         return DocumentUploadResponse(
             id=document.id,
             title=document.title,
@@ -206,11 +232,14 @@ async def delete_document(
     session: AsyncSession = Depends(get_session),
     storage: StorageAdapter = Depends(get_storage_service),
     vector_store: VectorStoreService = Depends(get_vector_service),
+    current_user: User = Depends(get_current_user),  # Add this
 ):
-    """
-    Delete a document (idempotent by design).
-    Only owner can delete.
-    """
+    """Delete a document (idempotent by design)."""
+
+    # Store data for event before deletion
+    document_id = document.id
+    document_title = document.title
+
     # 1. Clean up Vector Store (Embeddings)
     try:
         await vector_store.delete_document(document.id)
@@ -233,6 +262,19 @@ async def delete_document(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             message=f"Database error: {str(e)}",
         ) from e
+
+    # PUBLISH EVENT: Document deleted
+    if services.events:
+        event = DocumentDeletedEvent(
+            event_id=id_generator.generate(),
+            timestamp=utc_now(),
+            user_id=current_user.id,
+            data=DocumentDeletedData(
+                document_id=document_id,
+                title=document_title,
+            ),
+        )
+        await services.events.publish(event)
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 

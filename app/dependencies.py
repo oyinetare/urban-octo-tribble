@@ -18,12 +18,12 @@ from app.exceptions import (
 from app.models.document import Document
 from app.models.user import User
 from app.schemas import PaginationParams
-from app.services.embeddings import EmbeddingService
-from app.services.hybrid_search import HybridSearchService
-from app.services.llm import LLMService
-from app.services.rag import RAGService
-from app.services.redis_service import RedisService
-from app.services.vector_store import VectorStoreService
+from app.services.ai.embeddings import EmbeddingService
+from app.services.ai.hybrid_search import HybridSearchService
+from app.services.ai.llm import LLMService
+from app.services.ai.rag import RAGService
+from app.services.ai.vector_store import VectorStoreService
+from app.services.optimization.redis_service import RedisService
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/api/v1/auth/login",

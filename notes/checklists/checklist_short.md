@@ -698,38 +698,38 @@
 **What:** Event-driven architecture with pub/sub messaging
 
 ### Tasks
-- [ ] Add Redpanda to Docker Compose
-- [ ] Create topics (events, triggers, analytics)
-- [ ] Configure retention and partitions
-- [ ] Test connectivity
-- [ ] Define event types (Pydantic models)
-- [ ] document.uploaded
-- [ ] document.processed
-- [ ] query.completed
-- [ ] trend.detected
-- [ ] anomaly.detected
-- [ ] Create producer service
-- [ ] Publish events on actions
-- [ ] Add event metadata (timestamp, user_id)
-- [ ] Handle producer errors
-- [ ] Create consumer service
-- [ ] Subscribe to topics
-- [ ] Process events
-- [ ] Handle consumer errors
-- [ ] Publish events from API endpoints
-- [ ] Publish events from Celery tasks
-- [ ] Consume events in separate service
+- [x] Add Redpanda to Docker Compose
+- [x] Create topics (events, triggers, analytics)
+- [x] Configure retention and partitions
+- [x] Test connectivity
+- [x] Define event types (Pydantic models)
+- [x] document.uploaded
+- [x] document.processed
+- [x] query.completed
+- [x] trend.detected
+- [x] anomaly.detected
+- [x] Create producer service
+- [x] Publish events on actions
+- [x] Add event metadata (timestamp, user_id)
+- [x] Handle producer errors
+- [x] Create consumer service
+- [x] Subscribe to topics
+- [x] Process events
+- [x] Handle consumer errors
+- [x] Publish events from API endpoints
+- [x] Publish events from Celery tasks
+- [x] Consume events in separate service
 - [ ] Test event publishing
 - [ ] Test event consumption
 - [ ] Test event ordering
 - [ ] Test error handling
 
 ### Done When
-- [ ] Redpanda running
-- [ ] Events published from API
-- [ ] Events consumed successfully
-- [ ] Event ordering maintained
-- [ ] Error handling robust
+- [x] Redpanda running
+- [x] Events published from API
+- [x] Events consumed successfully
+- [x] Event ordering maintained
+- [x] Error handling robust
 
 ### Interview Questions You Can Answer
 - "Design an event-driven system"

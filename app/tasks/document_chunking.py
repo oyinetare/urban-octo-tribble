@@ -2,11 +2,17 @@ import logging
 
 from celery import shared_task
 
-from app.core import ProcessingStatus
+from app.core import ProcessingStatus, services
 from app.models import Document
-from app.services.chunking import ChunkBuilder, ChunkRepository, chunker
-from app.tasks import ProcessingTask
+from app.schemas.events import (
+    DocumentChunkedData,
+    DocumentChunkedEvent,
+    DocumentFailedData,
+    DocumentFailedEvent,
+)
 from app.tasks.base import get_async_session, run_async
+from app.tasks.document_processing import ProcessingTask
+from app.utility import id_generator, utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +23,8 @@ def chunk_document(self, document_id: int):
 
 
 async def _async_chunking(self, document_id: int):
-    # Create session in the task's event loop context
+    from app.services.ai import ChunkBuilder, ChunkRepository, chunker
+
     session = get_async_session()
 
     async with session:
@@ -29,22 +36,49 @@ async def _async_chunking(self, document_id: int):
         builder = ChunkBuilder().from_document(document).with_chunker(chunker)
 
         try:
-            # 1. Clear old data and 2. Generate new
             await repo.delete_by_document(document_id)
             chunks = await builder.build()
-
-            # 3. Save & Commit
             await repo.create_chunks(chunks)
 
-            # Update status before closing session
             document.processing_status = ProcessingStatus.COMPLETED
             await session.commit()
 
+            #  PUBLISH EVENT: Chunking completed
+            if services.events:
+                avg_chunk_size = sum(len(c.text) for c in chunks) // len(chunks) if chunks else 0
+
+                event = DocumentChunkedEvent(
+                    event_id=id_generator.generate(),
+                    timestamp=utc_now(),
+                    user_id=document.owner_id,
+                    data=DocumentChunkedData(
+                        document_id=document_id,
+                        chunks_count=len(chunks),
+                        avg_chunk_size=avg_chunk_size,
+                    ),
+                )
+                await services.events.publish(event)
+
         except Exception as e:
             await session.rollback()
-            raise e
 
-    # 4. Chain to next task AFTER session is closed and committed
+            # Publish failure event
+            if services.events:
+                event = DocumentFailedEvent(
+                    event_id=id_generator.generate(),
+                    timestamp=utc_now(),
+                    user_id=document.owner_id,
+                    data=DocumentFailedData(
+                        document_id=document_id,
+                        error_message=str(e),
+                        failed_stage="chunking",
+                    ),
+                )
+                await services.events.publish(event)
+
+            raise
+
+    # Chain to embedding
     from app.tasks.chunks_embedding import embed_chunks
 
     embed_chunks.delay(document_id)

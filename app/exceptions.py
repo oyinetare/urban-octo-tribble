@@ -107,3 +107,45 @@ class InvalidFileException(AppException):
 
     def __init__(self, message: str = "Invalid file"):
         super().__init__(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, message=message)
+
+
+class LLMException(AppException):
+    """Exception for LLMs."""
+
+    def __init__(self, message: str = "Invalid file"):
+        super().__init__(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, message=message)
+
+
+class VectorStoreException(AppException):
+    """Exception for LLMs."""
+
+    def __init__(self, message: str = "Invalid file"):
+        super().__init__(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, message=message)
+
+
+class EventConsumerException(AppException):
+    """Exception for LLMs."""
+
+    def __init__(self, message: str = "Invalid file"):
+        super().__init__(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, message=message)
+
+
+class EventProducerException(AppException):
+    """Exception for LLMs."""
+
+    def __init__(self, message: str = "Invalid file"):
+        super().__init__(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, message=message)
+
+
+class TasksException(AppException):
+    """Exception for LLMs."""
+
+    def __init__(self, message: str = "Invalid file"):
+        super().__init__(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, message=message)
+
+
+class SnowflakeIDGeneratorException(AppException):
+    """Exception for LLMs."""
+
+    def __init__(self, message: str = "Invalid file"):
+        super().__init__(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, message=message)

@@ -9,6 +9,13 @@ from app.schemas.document import (
     ProcessingStatusResponse,
     SortOrder,
 )
+from app.schemas.events import (
+    DocumentDeletedData,
+    DocumentDeletedEvent,
+    DocumentUploadedData,
+    DocumentUploadedEvent,
+    EventType,
+)
 from app.schemas.metrics import (
     CacheHitRates,
     CacheMetrics,
@@ -34,6 +41,11 @@ __all__ = [
     "DocumentDownloadResponse",
     "ProcessingStatusResponse",
     "SortOrder",
+    "DocumentDeletedData",
+    "DocumentDeletedEvent",
+    "DocumentUploadedData",
+    "DocumentUploadedEvent",
+    "EventType",
     "CacheHitRates",
     "CacheMetrics",
     "LatencyMetrics",
