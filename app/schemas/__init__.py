@@ -1,3 +1,17 @@
+from app.schemas.agent import (
+    AgentQueryRequest,
+    AgentQueryResponse,
+    AgentState,
+    DocEntry,
+    FullReport,
+    MemoryCreate,
+    MemoryResponse,
+    PreferencesResponse,
+    PreferencesUpdate,
+    ReasoningStep,
+    ReportData,
+    ToolCall,
+)
 from app.schemas.document import (
     DocumentBase,
     DocumentCreate,
@@ -25,6 +39,19 @@ from app.schemas.shorturl import ShortenResponse, StatsResponse
 from app.schemas.user import Token, UserCreate, UserResponse
 
 __all__ = [
+    "AgentQueryRequest",
+    "AgentQueryResponse",
+    "AgentState",
+    "DocEntry",
+    "ReportData",
+    "FullReport",
+    "MemoryCreate",
+    "MemoryResponse",
+    "PreferencesResponse",
+    "PreferencesUpdate",
+    "ReasoningStep",
+    "ReportData",
+    "ToolCall",
     "DocumentBase",
     "DocumentCreate",
     "DocumentResponse",

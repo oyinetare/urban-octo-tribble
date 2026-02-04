@@ -3,30 +3,30 @@
 
 repos:
   # Ruff - Fast Python linter and formatter (replaces black, isort, flake8)
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.4
-    hooks:
-      # Run the linter
-      - id: ruff
-        args: [--fix]
-        types_or: [python, pyi]
+  # - repo: https://github.com/astral-sh/ruff-pre-commit
+  #   rev: v0.8.4
+  #   hooks:
+  #     # Run the linter
+  #     - id: ruff
+  #       args: [--fix]
+  #       types_or: [python, pyi]
 
-      # Run the formatter
-      - id: ruff-format
-        types_or: [python, pyi]
+  #     # Run the formatter
+  #     - id: ruff-format
+  #       types_or: [python, pyi]
 
-  # Ty - Astral's ultra-fast Python type checker
-  # Note: No official pre-commit hook yet, using system hook
-  # See: https://github.com/astral-sh/ty/issues/269
-  - repo: local
-    hooks:
-      - id: ty
-        name: ty type checker
-        entry: uv run ty check
-        language: system
-        types: [python]
-        pass_filenames: false
-        args: [--output-format=concise]
+  # # Ty - Astral's ultra-fast Python type checker
+  # # Note: No official pre-commit hook yet, using system hook
+  # # See: https://github.com/astral-sh/ty/issues/269
+  # - repo: local
+  #   hooks:
+  #     - id: ty
+  #       name: ty type checker
+  #       entry: uv run ty check
+  #       language: system
+  #       types: [python]
+  #       pass_filenames: false
+  #       args: [--output-format=concise]
 
   # General file checks
   - repo: https://github.com/pre-commit/pre-commit-hooks

@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock
 
 import aioboto3
 from botocore.exceptions import ClientError
+from pydantic import SecretStr
 
 from app.core import get_settings
 from app.exceptions import StorageException
@@ -85,8 +86,8 @@ class MinIOAdapter(StorageAdapter):
     def __init__(
         self,
         endpoint: str,
-        access_key: str,
-        secret_key: str,
+        access_key: SecretStr,
+        secret_key: SecretStr,
         bucket_name: str,
         use_ssl: bool = False,
     ):

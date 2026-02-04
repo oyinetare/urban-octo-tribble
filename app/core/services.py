@@ -5,6 +5,7 @@ Adds:
 - Redis for caching (integrated into RedisService)
 - MetricsService for performance tracking
 - QueryClassifier for smart routing
+- AgentService for LangGraph agent
 """
 
 import logging
@@ -33,6 +34,10 @@ class Services:
     metrics: MetricsService | None = None
     classifier: QueryClassifier | None = None
 
+    # NEW: Agent service
+    # Note: agent_service is imported as a singleton, not initialized here
+    # It's available via: from app.services.agent_service import agent_service
+
     @classmethod
     async def init(cls):
         """Initialize all services with proper error handling"""
@@ -54,7 +59,7 @@ class Services:
                 if cls.metrics.is_available:
                     logger.info("✅ Metrics service initialized successfully")
                 else:
-                    logger.warning("⚠️  Metrics service initialized but Redis unavailable")
+                    logger.warning("âš ï¸  Metrics service initialized but Redis unavailable")
             except Exception as e:
                 logger.error(f"❌ Metrics service initialization failed: {e}")
                 cls.metrics = None
@@ -149,20 +154,31 @@ class Services:
                     logger.warning("   📦 Response caching: DISABLED (Redis unavailable)")
 
                 if cls.metrics and cls.metrics.is_available:
-                    logger.info("   📊 Performance metrics: ENABLED")
+                    logger.info("   📊  Performance metrics: ENABLED")
                 else:
-                    logger.warning("   📊 Performance metrics: DISABLED (Redis unavailable)")
+                    logger.warning("   📊  Performance metrics: DISABLED (Redis unavailable)")
 
                 if cls.classifier:
-                    logger.info("   🎯 Query classification: ENABLED")
+                    logger.info("   ðŸŽ¯ Query classification: ENABLED")
                 else:
-                    logger.warning("   🎯 Query classification: DISABLED")
+                    logger.warning("   ðŸŽ¯ Query classification: DISABLED")
 
             except Exception as e:
                 logger.error(f"❌ RAG initialization failed: {e}")
                 import traceback
 
                 logger.error(traceback.format_exc())
+
+        # 8. Agent Service
+        # The agent service is a singleton that's already initialized
+        # We just log that it's available
+        try:
+            from app.services.agent_service import agent_service
+
+            logger.info("✅ Agent service initialized successfully")
+            logger.info(f"   Max iterations: {agent_service.max_iterations}")
+        except Exception as e:
+            logger.error(f"❌ Agent service initialization failed: {e}")
 
 
 services = Services()

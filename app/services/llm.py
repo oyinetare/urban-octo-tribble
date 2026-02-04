@@ -72,7 +72,7 @@ class AnthropicProvider(LLMProvider):
         if not self.api_key:
             raise ValueError("ANTHROPIC_API_KEY is required")
 
-        self.client = AsyncAnthropic(api_key=self.api_key)
+        self.client = AsyncAnthropic(api_key=str(self.api_key))
         self.model = settings.ANTHROPIC_MODEL
         self.max_tokens = settings.ANTHROPIC_MAX_TOKENS
 

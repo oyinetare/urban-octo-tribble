@@ -145,7 +145,7 @@ curl -X GET http://localhost:8000/api/v1/users/me \
 
 ```bash
 # Logout
-curl -X POST 'http://localhost:8000/api/v1/auth/logout' \
+curl -X POST http://localhost:8000/api/v1/auth/logout \
   -H "Authorization: Bearer $TOKEN" | jq
 ```
 
