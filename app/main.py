@@ -18,7 +18,7 @@ from app.middleware import (
     rate_limit_middleware,
     security_headers_middleware,
 )
-from app.routes import auth, documents, metrics, query, users
+from app.routes import agent, auth, documents, memory, metrics, query, users
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -255,6 +255,8 @@ async def readiness_check():
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
+app.include_router(agent.router, prefix="/api/v1/agent", tags=["Agents"])
+app.include_router(memory.router, prefix="/api/v1/agent/memory", tags=["agent-memory"])
 app.include_router(metrics.router, prefix="/api/v1/metrics", tags=["Metrics"])
 app.include_router(query.router, prefix="/api/v1/query", tags=["Query"])
 app.include_router(documents.router, prefix="/api/v1/documents", tags=["Documents"])

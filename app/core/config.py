@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
 
     # Security
-    SECRET_KEY: str
+    SECRET_KEY: SecretStr
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
@@ -28,8 +28,8 @@ class Settings(BaseSettings):
 
     # MinIO / S3 Storage
     MINIO_ENDPOINT: str
-    MINIO_ACCESS_KEY: str
-    MINIO_SECRET_KEY: str
+    MINIO_ACCESS_KEY: SecretStr
+    MINIO_SECRET_KEY: SecretStr
     MINIO_DOCUMENTS_BUCKET_NAME: str = "documents"
     MINIO_USE_SSL: bool = False
     MINIO_ROOT_USER: str
@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     QDRANT_COLLECTION_NAME: str = Field(
         default="documents", description="Qdrant collection name for documents"
     )
-    QDRANT_API_KEY: str | None = Field(
+    QDRANT_API_KEY: SecretStr | None = Field(
         default=None, description="Optional API key for Qdrant Cloud"
     )
 
@@ -81,7 +81,7 @@ class Settings(BaseSettings):
     )
 
     # Anthropic Configuration
-    ANTHROPIC_API_KEY: str | None = Field(default=None, description="Anthropic API key")
+    ANTHROPIC_API_KEY: SecretStr | None = Field(default=None, description="Anthropic API key")
     ANTHROPIC_MODEL: str = Field(
         default="claude-sonnet-4-20250514", description="Anthropic model name"
     )

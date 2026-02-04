@@ -608,11 +608,11 @@
 - [x] Set up alerts
 
 ### Done When
-- [ ] Response caching works (Redis)
-- [ ] Cache hit rate > 30%
-- [ ] LLM costs reduced by 40%+
-- [ ] Response time improved by 50%+
-- [ ] Cache invalidation works correctly
+- [x] Response caching works (Redis)
+- [x] Cache hit rate > 30%
+- [x] LLM costs reduced by 40%+
+- [x] Response time improved by 50%+
+- [x] Cache invalidation works correctly
 
 ### Interview Questions You Can Answer
 - "How do you optimize RAG system costs?"
@@ -658,7 +658,7 @@
 - [ ] `search_documents` - Search user's documents
 - [ ] `query_database` - Execute read-only SQL
 - [ ] `generate_report` - Create summary reports
-<!-- - [ ] `send_notification` - Send notifications -->
+- [ ] `send_notification` - Send notifications
 - [ ] `web_search` - Search the web (optional)
 - [ ] Define agent state (messages, iterations, final_answer)
 - [ ] Create agent reasoning node
@@ -669,6 +669,19 @@
 - [ ] Save conversation history
 - [ ] Return agent reasoning steps
 - [ ] Handle errors gracefully
+- [ ] Add agent
+Add more tools:
+    Web search (using Tavily or similar)
+    Document comparison
+    Statistical analysis
+Improve prompts:
+    Add system prompts
+    Fine-tune tool descriptions
+    Add few-shot examples
+Add memory:
+    Store conversation context
+    Add user preferences
+    Implement long-term memory
 - [ ] `GET /agent/query/stream` - Stream agent thinking
 - [ ] Show reasoning steps in real-time
 - [ ] Show tool calls

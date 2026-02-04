@@ -1,30 +1,23 @@
-import warnings
+import asyncio
 from collections.abc import AsyncGenerator
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 import pytest_asyncio
+from fakeredis.aioredis import FakeRedis
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel
 
-from app.core import get_settings, token_manager
+from app.core import services, token_manager
 from app.main import app
 from app.models import Document, User
-from app.services import DocumentChunker, MockStorageAdapter
+from app.services.redis_service import RedisService
+from app.services.storage import MockStorageAdapter
 
-settings = get_settings()
-
-# Suppress specific warnings at module level
-warnings.filterwarnings("ignore", message="coroutine.*was never awaited")
-warnings.filterwarnings("ignore", category=RuntimeWarning, module="asyncpg")
-warnings.filterwarnings("ignore", message="coroutine 'Connection._cancel' was never awaited")
-
-
-# Test database URL (use in-memory SQLite for tests)
+# --- Database Setup ---
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
-
 test_engine = create_async_engine(
     TEST_DATABASE_URL,
     echo=False,
@@ -44,30 +37,85 @@ TestSessionLocal = async_sessionmaker(
 
 @pytest_asyncio.fixture(scope="function")
 async def session() -> AsyncGenerator[AsyncSession, None]:
-    """Create test database session with guaranteed cleanup."""
-    # Create tables
     async with test_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
-
-    # Provide session
     async with TestSessionLocal() as test_session:
         try:
             yield test_session
         finally:
             await test_session.rollback()
             await test_session.close()
-
-    # Drop tables
     async with test_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.drop_all)
 
-    # This helps clear the StaticPool's single connection
-    await test_engine.dispose()
+
+# --- Global Mocks (Prevention of Network Calls) ---
 
 
-@pytest_asyncio.fixture
-async def storage_mock():
-    return MockStorageAdapter()
+@pytest.fixture(scope="session", autouse=True)
+def mock_storage_init():
+    """Globally block real MinIO initialization."""
+    with patch(
+        "app.services.storage.MinIOAdapter._ensure_bucket_exists", new_callable=AsyncMock
+    ) as m:
+        m.return_value = None
+        yield m
+
+
+@pytest.fixture(scope="session", autouse=True)
+def mock_embedding_service_global():
+    """Globally block heavy ML model loading."""
+    with patch(
+        "app.services.embeddings.EmbeddingService._ensure_model_loaded", new_callable=AsyncMock
+    ) as m:
+        m.return_value = None
+        yield m
+
+
+# --- Service Initialization ---
+
+
+@pytest_asyncio.fixture(scope="session", autouse=True)
+async def initialize_test_services():
+    """Unified session initializer: Sets up mocks and calls services.init() ONCE."""
+    # 1. Setup Mock Redis
+    RedisService._instance = None
+    test_redis = RedisService()
+    test_redis._redis_client = FakeRedis(decode_responses=True)
+    services.redis = test_redis
+
+    # 2. Setup Mock Storage
+    mock_s = MockStorageAdapter()
+    mock_s._ensure_bucket_exists = AsyncMock(return_value=None)
+    services.storage = mock_s
+
+    # 3. Setup Vector Store with Qdrant Mock
+    with patch("app.services.vector_store.AsyncQdrantClient") as mock_qdrant_client:
+        # Prevent collection check crash
+        mock_qdrant_client.return_value.get_collections.return_value = MagicMock(collections=[])
+
+        # Initialize services with a timeout
+        await asyncio.wait_for(services.init(), timeout=5.0)
+        yield
+
+    # Cleanup
+    if services.redis:
+        await services.redis.close()
+
+
+# --- Shared Fixtures ---
+
+
+@pytest.fixture
+def mock_qdrant():
+    """Fixture for specific vector store tests to inspect calls."""
+    mock_async = MagicMock()
+    mock_async.get_collections = AsyncMock(return_value=MagicMock(collections=[]))
+    mock_async.create_collection = AsyncMock(return_value=True)
+    mock_async.upsert = AsyncMock(return_value=True)
+    mock_async.delete = AsyncMock(return_value=True)
+    mock_async.query_points = AsyncMock()
+    return {"async": mock_async}
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -248,24 +296,6 @@ def mock_celery_tasks():
         yield {"process_task": mock_process, "chunk_task": mock_chunk, "task_id": "mock-task-id"}
 
 
-@pytest_asyncio.fixture
-def chunker():
-    return DocumentChunker(chunk_size=10, overlap=2)
-
-
-@pytest.fixture(autouse=True)
-def mock_token_bucket():
-    """
-    Mocks the TokenBucket consume method to prevent real Redis interaction
-    and time-based logic during tests.
-    """
-    # Path should point to where TokenBucket is defined/used
-    with patch("app.middleware.rate_limit.TokenBucket.consume") as mock_consume:
-        # Default to allowing the request: (allowed=True, info_dict)
-        mock_consume.return_value = (True, {"remaining": 10})
-        yield mock_consume
-
-
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def manage_test_services():
     """Centralized service management for the entire test session."""
@@ -299,114 +329,3 @@ async def manage_test_services():
     # 4. Teardown
     if services.redis:
         await services.redis.close()
-
-
-# Add this fixture to your conftest.py
-@pytest.fixture(scope="session", autouse=True)
-def mock_embedding_service():
-    """Stop sentence-transformers from loading during tests."""
-    with patch("app.services.embeddings.EmbeddingService") as mock:
-        # Mock the dimension return value
-        mock_instance = mock.return_value
-        mock_instance.get_embedding_dimension.return_value = 384
-        # Mock the batch return (return empty lists or zeros)
-        mock_instance.embed_batch.return_value = [[0.0] * 384]
-        yield mock
-
-
-# @pytest.fixture(scope="session")
-# def event_loop():
-#     """Create event loop and ensure engine disposal happens inside it."""
-#     loop = asyncio.get_event_loop_policy().new_event_loop()
-#     yield loop
-
-#     # Run cleanup explicitly before closing
-#     try:
-#         # If engine wasn't disposed yet, force it here
-#         loop.run_until_complete(test_engine.dispose())
-
-#         pending = asyncio.all_tasks(loop)
-#         if pending:
-#             loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
-#     finally:
-#         loop.close()
-
-
-# @pytest.fixture(autouse=True)
-# def mock_redis_pool():
-#     """Prevent the actual Redis connection pool from ever starting."""
-#     with patch("redis.asyncio.connection.ConnectionPool.from_url") as mock:
-#         mock.return_value = MagicMock()
-#         yield mock
-
-
-# @pytest.fixture(autouse=True)
-# def mock_redis_connection():
-#     with patch("redis.asyncio.Redis.from_url") as mock:
-#         mock.return_value = MagicMock()
-#         yield mock
-
-
-# @pytest.fixture(autouse=True)
-# def mock_rate_limiter():
-#     """
-#     Prevents the rate limiter from actually hitting Redis and
-#     allows us to control the 429 responses in tests.
-#     """
-#     # Adjust this path to where your RateLimitMiddleware or
-#     # dependency check lives (e.g., app.middleware.rate_limit)
-#     with patch("app.middleware.rate_limit.rate_limit_middleware") as mock_check:
-#         # Default to allowing all requests
-#         mock_check.return_value = False
-#         yield mock_check
-
-
-# @pytest_asyncio.fixture(scope="session", autouse=True)
-# async def setup_qdrant():
-#     """
-#     Ensures the Qdrant collection exists before running tests.
-#     Scope is 'session' so it only runs once.
-#     """
-#     client = AsyncQdrantClient(
-#         host=settings.QDRANT_HOST, port=settings.QDRANT_PORT, api_key=settings.QDRANT_API_KEY
-#     )
-
-#     collection_name = settings.QDRANT_COLLECTION_NAME
-
-#     # Check if collection exists
-#     collections = await client.get_collections()
-#     exists = any(c.name == collection_name for c in collections.collections)
-
-#     if not exists:
-#         await client.create_collection(
-#             collection_name=collection_name,
-#             vectors_config=models.VectorParams(
-#                 size=settings.EMBEDDING_DIMENSION, distance=models.Distance.COSINE
-#             ),
-#         )
-
-#     yield client
-
-#     # Optional: Clean up after the whole test session
-#     # await client.delete_collection(collection_name)
-#     await client.close()
-
-
-# @pytest_asyncio.fixture
-# async def clean_qdrant(setup_qdrant):
-#     """
-#     Use this fixture in specific tests to wipe data between runs
-#     without deleting the whole collection schema.
-#     """
-#     await setup_qdrant.delete_payload(
-#         collection_name=settings.QDRANT_COLLECTION_NAME,
-#         keys_filter=models.Filter(must=[models.HasIdCondition(has_id=[...])]),  # or points selector
-#         points=models.FilterSelector(filter=models.Filter()),
-#     )
-#     yield
-
-
-# @pytest.fixture(scope="session", autouse=True)
-# def disable_rate_limits():
-#     """Environment override to disable rate limiting logic in tests."""
-#     os.environ["RATE_LIMIT_ENABLED"] = "False"
