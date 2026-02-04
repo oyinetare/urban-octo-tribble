@@ -18,6 +18,7 @@ from app.services.ai.vector_store import VectorStoreService
 from app.services.events import EventProducer
 from app.services.optimization.metrics_service import MetricsService
 from app.services.optimization.redis_service import RedisService
+from app.services.optimization.shard_service import ShardService
 from app.services.storage import MinIOAdapter, StorageAdapter
 
 logger = logging.getLogger(__name__)
@@ -28,12 +29,13 @@ class Services:
     storage: StorageAdapter | None = None
     embedding: EmbeddingService | None = None
     vector_store: VectorStoreService | None = None
-    redis: RedisService | None = None
     rag: RAGService | None = None
+    classifier: QueryClassifier | None = None
 
     # Optimization services
     metrics: MetricsService | None = None
-    classifier: QueryClassifier | None = None
+    redis: RedisService | None = None
+    shard_service: ShardService | None = None
 
     # Event streaming
     events: EventProducer | None = None
@@ -101,6 +103,16 @@ class Services:
             except Exception as e:
                 logger.error(f"❌ Storage initialization failed: {e}")
                 cls.storage = None
+
+        # Shard service
+        if cls.shard_service is None:
+            try:
+                cls.shard_service = ShardService()
+                await cls.shard_service.initialize()
+                logger.info("✅ Shard Service initialized successfully")
+            except Exception as e:
+                logger.error(f"❌ Shard Service initialization failed: {e}")
+                cls.classifier = None
 
         # 6. Embedding
         if cls.embedding is None:

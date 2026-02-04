@@ -149,6 +149,22 @@ Rules:
         default=True, description="Enable event publishing (disable for testing)"
     )
 
+    # Consistent Hashing / Sharding Configuration
+    SHARDING_ENABLED: bool = Field(
+        default=True, description="Enable consistent hashing for sharding"
+    )
+    SHARDING_VIRTUAL_NODES: int = Field(
+        default=150, description="Virtual nodes per shard for consistent hashing"
+    )
+    SHARDING_STRATEGY: str = Field(
+        default="user", description="Sharding strategy: 'user' or 'document'"
+    )
+    # Shard configurations (comma-separated: "shard-1:1,shard-2:1,shard-3:2")
+    # Format: "id:weight,id:weight,..."
+    SHARD_NODES: str = Field(
+        default="shard-0:1", description="Shard node configurations (id:weight pairs)"
+    )
+
     model_config = SettingsConfigDict(env_file=".env")
 
 

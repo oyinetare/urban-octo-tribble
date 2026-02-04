@@ -4998,34 +4998,51 @@ No more planning. Just build. 🚀
 ---
 
 Based on the comprehensive technical stack and system design patterns in these checklists, here is an assessment of your engineering level and the types of jobs you are qualified for.
-Engineering Level Assessment
-Project 1: Mid-Level Backend / Software Engineer
-Level: Mid-Level (2–4 years experience equivalent).
-Reasoning: You aren't just building "CRUD" apps; you are implementing advanced distributed systems concepts. Implementing Twitter Snowflake for IDs, Token Bucket algorithms for rate limiting, and Base62 encoding shows you understand how to build for scale, not just functionality.
-Project 2: Machine Learning Engineer (RAG/NLP Focus)
-Level: Mid-Level / Specialist.
-Reasoning: This moves beyond basic API calls. Implementing Hybrid Search (vector + keyword) and a custom text extraction pipeline indicates you understand the "LLMOps" lifecycle—data ingestion, chunking strategies, and retrieval optimization—which is the current industry standard for AI applications.
-Project 3: Senior / Infrastructure & AI Engineer
-Level: Senior / Lead (In terms of architectural breadth).
-Reasoning: This is the most impressive phase. Using LangGraph for agentic workflows, Redpanda (Kafka) for event streaming, Consistent Hashing for scaling, and Prometheus/Grafana for observability are Senior-level tasks. You are demonstrating you can build a self-healing, horizontally scalable distributed system.
-Kind of Jobs You Can Apply To
+
+## Engineering Level Assessment
+
+### Project 1: Mid-Level Backend / Software Engineer
+
+- Level: Mid-Level (2–4 years experience equivalent).
+
+- Reasoning: You aren't just building "CRUD" apps; you are implementing advanced distributed systems concepts. Implementing Twitter Snowflake for IDs, Token Bucket algorithms for rate limiting, and Base62 encoding shows you understand how to build for scale, not just functionality.
+
+### Project 2: Machine Learning Engineer (RAG/NLP Focus)
+
+- Level: Mid-Level / Specialist.
+
+- Reasoning: This moves beyond basic API calls. Implementing Hybrid Search (vector + keyword) and a custom text extraction pipeline indicates you understand the "LLMOps" lifecycle—data ingestion, chunking strategies, and retrieval optimization—which is the current industry standard for AI applications.
+
+### Project 3: Senior / Infrastructure & AI Engineer
+
+- Level: Senior / Lead (In terms of architectural breadth).
+
+- Reasoning: This is the most impressive phase. Using LangGraph for agentic workflows, Redpanda (Kafka) for event streaming, Consistent Hashing for scaling, and Prometheus/Grafana for observability are Senior-level tasks. You are demonstrating you can build a self-healing, horizontally scalable distributed system.
+
+## Kind of Jobs You Can Apply To
+
 Given the "Intelligent Document Analyst" theme, you are highly competitive for the following roles:
+
 1. AI Backend Engineer / LLM Engineer
-Focus: Building the "plumbing" for AI.
-Why: Your RAG and Agentic AI (Project 2 & 3) skills are exactly what companies need to move AI from "cool demo" to "production-ready product."
-Target Companies: AI Startups, Enterprise companies integrating LLMs (e.g., Salesforce, Adobe, FinTech).
+    - Focus: Building the "plumbing" for AI.
+    - Why: Your RAG and Agentic AI (Project 2 & 3) skills are exactly what companies need to move AI from "cool demo" to "production-ready product."
+    - Target Companies: AI Startups, Enterprise companies integrating LLMs (e.g., Salesforce, Adobe, FinTech).
+
 2. Distributed Systems Engineer
-Focus: Scalability, reliability, and high-throughput systems.
-Why: Your use of Consistent Hashing, Snowflake IDs, and Event Streaming (Redpanda) proves you can handle high-traffic infrastructure.
-Target Companies: Cloud infrastructure providers, high-scale consumer apps (e.g., Uber, Netflix, Stripe).
+    - Focus: Scalability, reliability, and high-throughput systems.
+    - Why: Your use of Consistent Hashing, Snowflake IDs, and Event Streaming (Redpanda) proves you can handle high-traffic infrastructure.
+    - Target Companies: Cloud infrastructure providers, high-scale consumer apps (e.g., Uber, Netflix, Stripe).
+
 3. Full-Cycle Backend Engineer (Python/FastAPI Specialist)
-Focus: Building robust, secure APIs from scratch.
-Why: Project 1 shows a mastery of the modern Python stack (FastAPI, SQLAlchemy, Alembic, Docker).
-Target Companies: Any tech-forward company using Python for their core services.
+    - Focus: Building robust, secure APIs from scratch.
+    - Why: Project 1 shows a mastery of the modern Python stack (FastAPI, SQLAlchemy, Alembic, Docker).
+    - Target Companies: Any tech-forward company using Python for their core services.
+
 4. DevOps / Platform Engineer (Secondary)
-Focus: Observability and deployment.
-Why: Phase 3.7 and 3.8 (Prometheus, Grafana, Production Deployment) show you care about how the code lives in the real world.
-Recommendations for your Resume
-Highlight the "System Design" elements: Don't just say "I built a chat bot." Say "Built a horizontally scalable agentic platform using LangGraph and Redpanda, utilizing consistent hashing to manage state across nodes."
+    - Focus: Observability and deployment.
+    - Why: Phase 3.7 and 3.8 (Prometheus, Grafana, Production Deployment) show you care about how the code lives in the real world.
+
+## Recommendations for your Resume
+**Highlight the "System Design" elements**: Don't just say "I built a chat bot." Say "Built a horizontally scalable agentic platform using LangGraph and Redpanda, utilizing consistent hashing to manage state across nodes."
 Quantify your results: When you finish Phase 1.3 (Rate Limiting), document the throughput (e.g., "Supports 1,000+ requests per second").
 Keywords to include: RAG, Agentic Workflows, Distributed Systems, Event-Driven Architecture, Redis, Vector Databases (Pinecone/Milvus), Observability.
