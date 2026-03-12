@@ -11,33 +11,128 @@
 
 ## 📋 Table of Contents
 
-- [Features](#features)
+API backend built w FASTAPI with Auth, Rate Limiting demonstrating system design concepts with progressive complexity.
+
+<!-- - [Features](#features) -->
 <!-- - [Quick Start] -->
 - [Tech Stack](#tech-stack)
-- [Architecture](#architecture)
+- [System Evolution + Architecture](#architecture)
 - [Getting Started](#getting-started)
     - [Prerequisites](#prerequisites)
     - [Installation](#installation)
 - [Development Commands](#development-commands)
 - [API Usage](#api-usage)
-- [Interactive Documentation](#interactive-documentation)
 - [Running Tests](#running-tests)
 - [Project Structure](#project-structure)
 - [Code Quality](#code-quality)
 - [References/Acknowledgments](#referencesacknowledgments)
 
----
-## Features
-
-- API built w FASTAPI with Auth, Rate Limiting
 
 ___
 
 ## Tech Stack
 
+### Core Technologies
+```
+FastAPI 0.115+         - Async API framework
+PostgreSQL 16+         - Primary database
+SQLModel              - ORM (SQLAlchemy + Pydantic)
+Pydantic              - Data validation
+Alembic               - Database migrations
+Redis 7+              - Caching + Rate limiting
+Python-JOSE           - JWT handling
+Passlib               - Password hashing (bcrypt)
+```
 ___
 
-## Architecture
+
+## System Evolution & Architecture
+
+```
+Phase 1: RESTful API
+    ↓ (adds document processing)
+Phase 2: RAG System
+    ↓ (adds autonomous intelligence)
+Phase 3: Agentic AI Platform
+```
+
+
+### Layered (N-Tier)
+
+#### V1
+```
+┌─────────────────────────────────────┐
+│     Presentation Layer              │
+│  FastAPI Routes + Dependencies      │
+│  /auth, /users, /documents          │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│      Business Logic Layer           │
+│  Route Handlers (inline for now)   │
+│  Validation + Business Rules        │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│       Data Access Layer             │
+│  SQLModel ORM + Repositories        │
+└──────────────┬──────────────────────┘
+               │
+┌──────────────▼──────────────────────┐
+│         Database Layer              │
+│  PostgreSQL (ACID, Transactions)    │
+└─────────────────────────────────────┘
+```
+
+#### V2
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Load Balancer (nginx)                   │
+└───────────────┬─────────────────┬─────────────────┬─────────┘
+                │                 │                 │
+       ┌────────▼────────┐ ┌─────▼──────┐ ┌───────▼────────┐
+       │  FastAPI API 1  │ │  API 2     │ │  API 3         │
+       │  (Stateless)    │ │            │ │                │
+       └────────┬────────┘ └─────┬──────┘ └───────┬────────┘
+                │                 │                 │
+                └─────────────────┼─────────────────┘
+                                  │
+        ┌─────────────────────────┼─────────────────────────┐
+        │                         │                         │
+   ┌────▼─────┐    ┌─────────┐   │    ┌──────────┐   ┌────▼────┐
+   │PostgreSQL│    │  Redis  │   │    │  Qdrant  │   │  MinIO  │
+   │          │    │ (cache) │   │    │ (vector) │   │(storage)│
+   └──────────┘    └─────────┘   │    └──────────┘   └─────────┘
+                                  │
+                         ┌────────▼────────┐
+                         │    Redpanda     │
+                         │ (Event Stream)  │
+                         └────────┬────────┘
+                                  │
+                    ┌─────────────┼─────────────┐
+                    │             │             │
+            ┌───────▼──────┐ ┌───▼───────┐ ┌──▼──────────┐
+            │ Celery Worker│ │  Triggers │ │  Analytics  │
+            │  (RAG Tasks) │ │ (Agents)  │ │             │
+            └──────────────┘ └───────────┘ └─────────────┘
+                                  │
+                         ┌────────▼────────┐
+                         │  Prometheus +   │
+                         │    Grafana      │
+                         │ (Observability) │
+                         └─────────────────┘
+```
+
+### RAG: Pipes & Filters + Background Processing
+
+```
+Upload → Extract → Chunk → Embed → Store → Query
+  │        │         │       │       │       │
+MinIO   Celery    Celery  Celery  Qdrant  Claude
+
+Each stage is a "filter" that transforms data
+Celery queues connect the "pipes" between filters
+```
 
 ___
 
@@ -230,13 +325,7 @@ curl -X POST http://localhost:8000/api/v1/documents/$DOC_ID/share \
 curl -X GET -I http://localhost:8000/d/2oLIZi1bnwI
 curl -v http://localhost:8000/
 ```
-___
-
-## Interactive Documentation
-
-Once the server is running, explore the full API:
-
-___
+---
 
 ## Running Tests
 
@@ -258,6 +347,120 @@ ___
 
 ## Project Structure
 
+```
+└── urban-octo-tribble
+    └── .github
+        └── workflows
+            ├── tests.yml
+        ├── PULL_REQUEST_TEMPLATE.md
+    └── alembic
+        ├── env.py
+        ├── README
+        ├── script.py.mako
+    └── app
+        └── core
+            ├── __init__.py
+            ├── config.py
+            ├── constants.py
+            ├── database.py
+            ├── extractors.py
+            ├── logging.py
+            ├── security.py
+            ├── services.py
+        └── middleware
+            ├── __init__.py
+            ├── https_redirect.py
+            ├── idempotency.py
+            ├── logging.py
+            ├── rate_limit.py
+            ├── security_headers.py
+            ├── versioning.py
+        └── models
+            ├── __init__.py
+            ├── base.py
+            ├── chunk.py
+            ├── document.py
+            ├── query.py
+            ├── shorturl.py
+            ├── user.py
+        └── routes
+            ├── __init__.py
+            ├── auth.py
+            ├── documents.py
+            ├── metrics.py
+            ├── query.py
+            ├── users.py
+        └── schemas
+            ├── __init__.py
+            ├── document.py
+            ├── events.py
+            ├── metrics.py
+            ├── pagination.py
+            ├── query.py
+            ├── search.py
+            ├── shorturl.py
+            ├── user.py
+        └── services
+            └── ai
+                ├── __init__.py
+                ├── chunking.py
+                ├── embeddings.py
+                ├── hybrid_search.py
+                ├── llm.py
+                ├── query_classifier.py
+                ├── rag.py
+                ├── vector_store.py
+            └── events
+                ├── __init__.py
+                ├── consumer.py
+                ├── producer.py
+            └── optimization
+                ├── __init__.py
+                ├── metrics_service.py
+                ├── redis_service.py
+            └── storage
+                ├── __init__.py
+                ├── minio_adapter.py
+            └── validation
+                ├── __init__.py
+                ├── validators.py
+            ├── __init__.py
+        └── tasks
+            ├── __init__.py
+            ├── base.py
+            ├── chunks_embedding.py
+            ├── document_chunking.py
+            ├── document_processing.py
+        └── utility
+            ├── __init__.py
+            ├── base62_encoder.py
+            ├── snowflake.py
+            ├── utc_now.py
+        ├── __init__.py
+        ├── celery_app.py
+        ├── dependencies.py
+        ├── exceptions.py
+        ├── main.py
+    └── scripts
+        ├── analytics_consumer.py
+        ├── event_consumer.py
+    └── tests
+    ├── .dockerignore
+    ├── .env.example
+    ├── .env.test
+    ├── .gitignore
+    ├── .pre-commit-config.yaml
+    ├── .python-version
+    ├── alembic.ini
+    ├── docker-compose.override.yml
+    ├── docker-compose.yaml
+    ├── Dockerfile
+    ├── Makefile
+    ├── pyproject.toml
+    ├── pytest.ini
+    ├── README.md
+    └── uv.lock
+```
 ___
 
 ## Code Quality
