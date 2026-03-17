@@ -7,7 +7,17 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A production-grade AI backend built across three phases of increasing complexity — from a secure REST API foundation through to a full RAG system with hybrid semantic search, agentic AI workflows, and event-driven architecture.
+A production-grade AI backend built across three phases of increasing complexity. From a secure REST API foundation through to a full RAG system with hybrid semantic search, agentic AI workflows, and event-driven architecture.
+
+---
+
+## Build status
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| Project 1 — RESTful API | ✅ Complete | Auth, rate limiting, Snowflake IDs, URL shortener, idempotency |
+| Project 2 — RAG System | ✅ Complete | Document pipeline, hybrid search, RAG generation, caching |
+| Project 3 — Agentic Platform | 🔧 In progress | Event streaming (Redpanda) done; LangGraph agent, WebSockets, observability, and production deployment in progress |
 
 ---
 
