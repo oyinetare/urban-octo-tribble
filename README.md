@@ -9,9 +9,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 <!-- [![codecov](https://codecov.io)](https://codecov.io) -->
 
-## 📋 Table of Contents
-
 API backend built with FastAPI demonstrating system design concepts with progressive complexity.
+
+## 📋 Table of Contents
 
 <!-- - [Features](#features) -->
 <!-- - [Quick Start] -->
