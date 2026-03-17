@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import os
+import signal
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, status
@@ -21,6 +23,22 @@ from app.routes import auth, documents, metrics, query, users
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+
+# Global flag for graceful shutdown
+is_shutting_down = False
+
+
+def handle_shutdown_signal(signum, frame):
+    """Handle shutdown signals for graceful termination."""
+    global is_shutting_down
+    signal_name = signal.Signals(signum).name
+    logger.info(f"🛑 Received {signal_name} signal, initiating graceful shutdown...")
+    is_shutting_down = True
+
+
+# Register signal handlers
+signal.signal(signal.SIGTERM, handle_shutdown_signal)
+signal.signal(signal.SIGINT, handle_shutdown_signal)
 
 
 @asynccontextmanager
@@ -46,7 +64,8 @@ async def lifespan(app: FastAPI):
     - Clean up resources
     """
     # ========== STARTUP ==========
-    logger.info("🚀 Starting application...")
+    instance_id = os.getenv("INSTANCE_ID", "unknown")
+    logger.info(f"🚀 Starting application (Instance: {instance_id})...")
 
     # Initialize all services (including events)
     await services.init()
@@ -56,17 +75,17 @@ async def lifespan(app: FastAPI):
 
     await init_db()
 
-    logger.info("✅ Application started successfully")
+    logger.info(f"✅ Application started successfully (Instance: {instance_id})")
 
     yield
 
     # ========== SHUTDOWN ==========
-    logger.info("🛑 Shutting down application...")
+    logger.info(f"🛑 Shutting down application (Instance: {instance_id})...")
 
     # Gracefully shutdown services
     await services.shutdown()
 
-    logger.info("✅ Application shutdown complete")
+    logger.info(f"✅ Application shutdown complete (Instance: {instance_id})")
 
 
 app = FastAPI(
@@ -159,21 +178,53 @@ async def app_exception_handler(request: Request, exc: AppException):
 
 @app.get("/", tags=["General"])
 def root():
+    """Root endpoint with instance information."""
+    instance_id = os.getenv("INSTANCE_ID", "unknown")
     return {
         "message": "Welcome to urban-octo-tribble API",
         "version": "1.0.0",
-        "features": ["RAG", "Vector Search", "Event Streaming, Rate Limiting"],
+        "instance": instance_id,
+        "features": [
+            "RAG",
+            "Vector Search",
+            "Event Streaming",
+            "Rate Limiting",
+            "Horizontal Scaling",
+        ],
     }
 
 
 @app.get("/health/live", tags=["Health"])
 async def liveness_check():
-    return {"status": "alive"}
+    """
+    Liveness probe - checks if the application is running.
+    Returns 200 if alive, even if dependencies are down.
+    Used by load balancer to determine if instance should receive traffic.
+    """
+    # If shutting down, return 503 to stop receiving new requests
+    if is_shutting_down:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"status": "shutting_down"},
+        )
+
+    instance_id = os.getenv("INSTANCE_ID", "unknown")
+    return {"status": "alive", "instance": instance_id}
 
 
 @app.get("/health/ready", tags=["Health"])
 async def readiness_check():
-    """Comprehensive readiness probe for all infrastructure dependencies."""
+    """
+    Comprehensive readiness probe for all infrastructure dependencies.
+    Returns 200 only if all critical services are available.
+    Used by load balancer to determine if instance should receive traffic.
+    """
+    # If shutting down, return 503 immediately
+    if is_shutting_down:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"status": "shutting_down"},
+        )
 
     async def check_redis():
         return await services.redis.ping() if services.redis else False
@@ -209,7 +260,6 @@ async def readiness_check():
 
     async def check_llm():
         """Check if LLM provider is responding"""
-        # Simplified return to satisfy the 'negated condition' hint
         return bool(services.rag and services.rag.llm_service)
 
     async def check_embeddings():
@@ -261,10 +311,15 @@ async def readiness_check():
     }
 
     is_ready = all(health_status.values())
+    instance_id = os.getenv("INSTANCE_ID", "unknown")
 
     return JSONResponse(
         status_code=status.HTTP_200_OK if is_ready else status.HTTP_503_SERVICE_UNAVAILABLE,
-        content={"status": "ready" if is_ready else "unready", "dependencies": health_status},
+        content={
+            "status": "ready" if is_ready else "unready",
+            "instance": instance_id,
+            "dependencies": health_status,
+        },
     )
 
 

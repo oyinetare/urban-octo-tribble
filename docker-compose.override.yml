@@ -50,10 +50,7 @@ services:
       - "6379:6379"
 
   minio:
-    # Expose ports in dev
-    ports:
-      - "9000:9000"  # API
-      - "9001:9001"  # Console
+    # Expose ports in deve
 
   qdrant:
     ports:

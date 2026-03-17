@@ -22,7 +22,7 @@ services:
     networks:
       - app_network
 
-  # Redis for token-blacklisting, caching, rate limiting
+  # Redis for token-blacklisting, caching, rate limiting, session storage
   redis:
     image: redis:7-alpine
     container_name: urban-octo-tribble-redis
@@ -161,13 +161,20 @@ services:
     networks:
       - app_network
 
-  api:
+  # ========================================
+  # API REPLICAS (3 instances for horizontal scaling)
+  # ========================================
+
+  api-1:
     build:
       context: .
       target: final
-    container_name: urban-octo-tribble-api
+    container_name: urban-octo-tribble-api-1
     restart: always
+    hostname: api-1
     environment:
+      # Instance identifier for logging
+      INSTANCE_ID: "api-1"
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/urban-octo-tribble
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -181,8 +188,6 @@ services:
       TRANSFORMERS_CACHE: /app/.cache/transformers
       SENTENCE_TRANSFORMERS_HOME: /app/.cache/sentence-transformers
       XDG_CACHE_HOME: /app/.cache
-    ports:
-      - "8000:8000"
     volumes:
       - model_cache:/app/.cache
     depends_on:
@@ -196,6 +201,123 @@ services:
         condition: service_healthy
     networks:
       - app_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  api-2:
+    build:
+      context: .
+      target: final
+    container_name: urban-octo-tribble-api-2
+    restart: always
+    hostname: api-2
+    environment:
+      INSTANCE_ID: "api-2"
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/urban-octo-tribble
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      CELERY_BROKER_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD}@redis:6379/0
+      ENVIRONMENT: production
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      HF_HOME: /app/.cache/huggingface
+      TRANSFORMERS_CACHE: /app/.cache/transformers
+      SENTENCE_TRANSFORMERS_HOME: /app/.cache/sentence-transformers
+      XDG_CACHE_HOME: /app/.cache
+    volumes:
+      - model_cache:/app/.cache
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  api-3:
+    build:
+      context: .
+      target: final
+    container_name: urban-octo-tribble-api-3
+    restart: always
+    hostname: api-3
+    environment:
+      INSTANCE_ID: "api-3"
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/urban-octo-tribble
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      CELERY_BROKER_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD}@redis:6379/0
+      ENVIRONMENT: production
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      HF_HOME: /app/.cache/huggingface
+      TRANSFORMERS_CACHE: /app/.cache/transformers
+      SENTENCE_TRANSFORMERS_HOME: /app/.cache/sentence-transformers
+      XDG_CACHE_HOME: /app/.cache
+    volumes:
+      - model_cache:/app/.cache
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # ========================================
+  # NGINX LOAD BALANCER
+  # ========================================
+
+  nginx:
+    image: nginx:alpine
+    container_name: urban-octo-tribble-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      api-1:
+        condition: service_healthy
+      api-2:
+        condition: service_healthy
+      api-3:
+        condition: service_healthy
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
 volumes:
   postgres_data:
@@ -204,6 +326,7 @@ volumes:
   qdrant_data:
   redpanda_data:
   model_cache:
+  nginx_logs:
 
 networks:
   app_network:

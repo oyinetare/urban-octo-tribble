@@ -127,7 +127,7 @@ Save the `document_id` from the response.
 ```bash
 RESPONSE=$(curl -X POST http://localhost:8000/api/v1/documents/upload \
   -H "Authorization: Bearer $TOKEN" \
-  -F "file=@_test_docs/On System Design by Jim Waldo.pdf" \
+  -F "file=@_test_doc/test_doc.txt" \
   -F "title=System Design")
 
 echo $RESPONSE | jq

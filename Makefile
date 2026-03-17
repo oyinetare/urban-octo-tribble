@@ -55,6 +55,7 @@ clean:  ## Clean up cache and build files
 	find . -type f -name "*.pyc" -delete
 	find . -type d -name ".pytest_cache" -exec rm -rf {} +
 	find . -type d -name ".ruff_cache" -exec rm -rf {} +
+	find . -type d -name ".cache" -exec rm -rf {} +
 	rm -rf htmlcov/
 	rm -rf .coverage
 	rm -rf .coverage*
