@@ -11,7 +11,7 @@
 
 ## 📋 Table of Contents
 
-API backend built w FASTAPI with Auth, Rate Limiting demonstrating system design concepts with progressive complexity.
+API backend built with FastAPI demonstrating system design concepts with progressive complexity.
 
 <!-- - [Features](#features) -->
 <!-- - [Quick Start] -->
