@@ -33,6 +33,14 @@ class Document(BaseModel, table=True):
     # mime_type
     content_type: str = Field(max_length=100)
 
+    # Phase 3.5: Sharding
+    shard_id: str | None = Field(
+        default=None,
+        max_length=50,
+        index=True,
+        description="Shard identifier for consistent hashing distribution",
+    )
+
     # Phase 2: Processing status
     processing_status: str = Field(
         sa_column=sa.Column(

@@ -14,6 +14,7 @@ from app.core import get_settings, services
 from app.exceptions import AppException
 from app.middleware import (
     IdempotencyMiddleware,
+    ShardRoutingMiddleware,
     https_redirect_middleware,
     log_requests_middleware,
     rate_limit_middleware,
@@ -141,6 +142,21 @@ app.middleware("http")(log_requests_middleware)
 
 # 7. Rate Limiting
 app.middleware("http")(rate_limit_middleware)
+
+# 8. Shard Routing
+# This should be last in the code (executed first in the request cycle)
+# so the correct database/tenant is identified before any logic runs.
+app.add_middleware(ShardRoutingMiddleware)  # type: ignore[arg-type]
+
+
+# 9. Simple Auth Middleware (NEW)
+# Added LAST so it executes FIRST in the request cycle.
+# It sets request.state.user so ShardRoutingMiddleware can see it.
+@app.middleware("http")
+async def quick_auth_middleware(request: Request, call_next):
+    # logic to get user from token/session
+    # request.state.user = await get_user_from_token(request.headers.get("Authorization"))
+    return await call_next(request)
 
 
 # EXCEPTION HANDLERS
